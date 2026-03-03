@@ -1,0 +1,167 @@
+---
+title: Architecture
+description: Understanding LibreDTE Core's architecture based on MicroKernel, Symfony DI, and Package/Component structure
+---
+
+LibreDTE Core is built on a modern, modular architecture designed for flexibility and maintainability. The library leverages industry-standard components while providing a clean abstraction layer for electronic invoicing in Chile.
+
+## Core Architecture Layers
+
+The architecture consists of three main layers:
+
+<CardGroup cols={3}>
+  <Card title="Application Layer" icon="layer-group">
+    The `Application` class extends `MicroKernel` and serves as the entry point
+  </Card>
+  <Card title="Package Layer" icon="box">
+    Modular packages like `billing` encapsulate related functionality
+  </Card>
+  <Card title="Component Layer" icon="cube">
+    Fine-grained components within packages handle specific tasks
+  </Card>
+</CardGroup>
+
+## MicroKernel Foundation
+
+LibreDTE Core extends the **Derafu MicroKernel**, a lightweight kernel that provides:
+
+- Dependency injection container management
+- Environment configuration (dev, prod, test)
+- Service configuration loading
+- Compiler pass registration
+
+```php Application.php
+namespace libredte\lib\Core;
+
+use Derafu\Kernel\MicroKernel;
+use libredte\lib\Core\Contract\ApplicationInterface;
+
+final class Application extends MicroKernel implements ApplicationInterface
+{
+    protected function configure(
+        ContainerConfigurator $configurator,
+        ContainerBuilder $container
+    ): void {
+        // Load configuration
+        $configurator->import(__DIR__ . '/../config/services.yaml');
+
+        // Add compiler passes
+        $container->addCompilerPass(
+            new ServiceProcessingCompilerPass('libredte.lib.')
+        );
+        $container->addCompilerPass(
+            new ServiceConfigurationCompilerPass('libredte.lib.')
+        );
+    }
+}
+```
+
+<Note>
+The MicroKernel approach provides a lightweight alternative to full frameworks, focusing solely on dependency injection and service management without unnecessary overhead.
+</Note>
+
+## Singleton Pattern (Optional)
+
+While the library fully supports dependency injection, it also provides a singleton instance for simpler use cases:
+
+```php
+use libredte\lib\Core\Application;
+
+// Get singleton instance
+$app = Application::getInstance('dev', true);
+
+// Access services
+$billingPackage = $app->getPackageRegistry()->getBillingPackage();
+```
+
+<Warning>
+The singleton pattern is provided for convenience but is **not recommended** when using LibreDTE within a dependency injection container. Always prefer constructor injection in modern applications.
+</Warning>
+
+## Service Configuration
+
+All services are configured in `config/services.yaml` with:
+
+<Tabs>
+  <Tab title="Autowiring">
+    Services are automatically wired based on type hints:
+    ```yaml
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+            public: false
+    ```
+  </Tab>
+  <Tab title="Interface Binding">
+    Interfaces are bound to concrete implementations:
+    ```yaml
+    libredte\lib\Core\Package\Billing\Component\Document\Contract\DocumentComponentInterface:
+        class: libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent
+    ```
+  </Tab>
+  <Tab title="Tagged Services">
+    Strategies and handlers use tagged services:
+    ```yaml
+    libredte\lib\Core\Package\Billing\Component\Document\Contract\BuilderWorkerInterface:
+        arguments:
+            $strategies: !tagged_iterator { tag: 'billing.document.builder#strategy', index_by: 'name' }
+    ```
+  </Tab>
+</Tabs>
+
+## Compiler Passes
+
+Two custom compiler passes enhance the container:
+
+<Accordion title="ServiceProcessingCompilerPass">
+  Processes services with the `libredte.lib.` prefix, enabling custom service manipulation during container compilation.
+</Accordion>
+
+<Accordion title="ServiceConfigurationCompilerPass">
+  Handles configuration merging and validation for LibreDTE services, ensuring proper setup before runtime.
+</Accordion>
+
+## Environment Management
+
+The application supports multiple environments:
+
+- **dev**: Development with full debugging
+- **prod**: Production-optimized with caching
+- **test**: Testing environment with fixtures
+
+```php
+// Specify environment and debug mode
+$app = new Application(
+    environment: 'prod',
+    debug: false
+);
+```
+
+## Key Design Principles
+
+<CardGroup cols={2}>
+  <Card title="Dependency Injection First" icon="syringe">
+    All components receive dependencies via constructor injection
+  </Card>
+  <Card title="Interface-Based Design" icon="diagram-project">
+    Programming to interfaces enables flexibility and testability
+  </Card>
+  <Card title="Lazy Loading" icon="hourglass">
+    Services are instantiated only when needed
+  </Card>
+  <Card title="Strategy Pattern" icon="chess">
+    Document-specific logic uses swappable strategies
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Packages & Components" href="/concepts/packages-and-components" icon="boxes">
+    Learn about the package and component structure
+  </Card>
+  <Card title="Dependency Injection" href="/concepts/dependency-injection" icon="plug">
+    Deep dive into the DI container usage
+  </Card>
+</CardGroup>

@@ -1,0 +1,513 @@
+---
+title: SII Integration
+description: Send electronic documents to Chile's SII tax authority and check submission status
+---
+
+LibreDTE Core provides complete integration with Chile's SII (Servicio de Impuestos Internos) web services for submitting electronic documents and checking their status.
+
+## Overview
+
+The `IntegrationComponent` manages all SII interactions through the `SiiLazyWorker`, which provides methods for:
+
+- Authenticating with SII web services
+- Sending XML documents (EnvioDTE)
+- Checking document submission status
+- Requesting status via email
+- Validating documents online
+- Validating document signatures
+
+## Getting Started
+
+Access the SII integration worker:
+
+```php
+$integrationComponent = $app->getPackage('billing')
+    ->getComponent('integration');
+
+$siiWorker = $integrationComponent->getSiiLazyWorker();
+```
+
+## SII Request Setup
+
+All SII operations require a `SiiRequest` object with your certificate and environment configuration:
+
+<CodeGroup>
+```php Certification Environment
+use libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest;
+use libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente;
+
+$request = new SiiRequest(
+    certificate: [
+        'data' => file_get_contents('/path/to/certificate.pfx'),
+        'password' => 'cert_password',
+    ],
+    options: [
+        'ambiente' => SiiAmbiente::CERTIFICACION,
+    ]
+);
+```
+
+```php Production Environment
+$request = new SiiRequest(
+    certificate: $certificate,
+    options: [
+        'ambiente' => SiiAmbiente::PRODUCCION,
+    ]
+);
+```
+</CodeGroup>
+
+<Warning>
+  Always test in `CERTIFICACION` environment before using `PRODUCCION`. Documents sent to production are legally binding.
+</Warning>
+
+## Sending Documents to SII
+
+Send a document envelope (EnvioDTE) to SII:
+
+<Steps>
+  <Step title="Create Document Envelope">
+    Generate an XML envelope containing one or more documents.
+    
+    ```php
+    // Assuming you have created a document
+    $bag = $documentComponent->bill($data, $caf, $certificate);
+    $document = $bag->getDocument();
+    
+    // Create envelope XML (implementation depends on your envelope builder)
+    $envelopeXml = $envelopeBuilder->createEnvelope([$document]);
+    ```
+  </Step>
+
+  <Step title="Send to SII">
+    Upload the envelope and receive a tracking ID (Track ID).
+    
+    ```php
+    // Load XML document
+    $xmlDocument = new \Derafu\Xml\XmlDocument();
+    $xmlDocument->loadXml($envelopeXml);
+    
+    try {
+        $trackId = $siiWorker->sendXmlDocument(
+            request: $request,
+            doc: $xmlDocument,
+            company: '12345678-5',  // RUT of issuer
+            compress: true,          // Compress XML with gzip
+            retry: 3                 // Retry attempts on failure
+        );
+        
+        echo "Document sent! Track ID: {$trackId}";
+    } catch (\Exception $e) {
+        echo "Error sending document: " . $e->getMessage();
+    }
+    ```
+  </Step>
+
+  <Step title="Store Track ID">
+    Save the Track ID to check the document status later.
+    
+    ```php
+    // Store in database or session
+    $db->saveTrackId($trackId, $documentId);
+    ```
+  </Step>
+</Steps>
+
+## Checking Document Status
+
+After sending a document, check its processing status with SII:
+
+<CodeGroup>
+```php Check Status
+$response = $siiWorker->checkXmlDocumentSentStatus(
+    request: $request,
+    trackId: $trackId,
+    company: '12345678-5'
+);
+
+// Get status information
+$status = $response->getStatus();
+$message = $response->getMessage();
+$details = $response->getDetails();
+
+echo "Status: {$status}\n";
+echo "Message: {$message}\n";
+
+if ($response->isAccepted()) {
+    echo "Document accepted by SII!";
+} elseif ($response->isRejected()) {
+    echo "Document rejected: {$message}";
+} elseif ($response->isPending()) {
+    echo "Document still being processed...";
+}
+```
+
+```php With Error Handling
+use libredte\lib\Core\Package\Billing\Component\Integration\Exception\SiiCheckXmlDocumentSentStatusException;
+
+try {
+    $response = $siiWorker->checkXmlDocumentSentStatus(
+        request: $request,
+        trackId: $trackId,
+        company: '12345678-5'
+    );
+    
+    if ($response->isAccepted()) {
+        // Update database: document accepted
+        $db->updateDocumentStatus($trackId, 'accepted');
+    } elseif ($response->isRejected()) {
+        // Log rejection reason
+        $db->logRejection($trackId, $response->getMessage());
+    }
+} catch (SiiCheckXmlDocumentSentStatusException $e) {
+    echo "Error checking status: " . $e->getMessage();
+}
+```
+</CodeGroup>
+
+<Note>
+  SII typically processes documents within minutes, but it can take longer during peak times. Poll the status periodically rather than continuously.
+</Note>
+
+## Request Status by Email
+
+Request SII to send the document status via email:
+
+```php
+$response = $siiWorker->requestXmlDocumentSentStatusByEmail(
+    request: $request,
+    trackId: $trackId,
+    company: '12345678-5'
+);
+
+if ($response->isSuccess()) {
+    echo "Status will be sent to registered email address";
+} else {
+    echo "Request failed: " . $response->getMessage();
+}
+```
+
+## Online Document Validation
+
+Validate a specific document with SII without sending an envelope:
+
+```php
+// Validate document exists in SII records
+$response = $siiWorker->validateDocument(
+    request: $request,
+    company: '12345678-5',      // Issuer RUT
+    document: 33,               // Document type (33 = Factura Afecta)
+    number: 150,                // Folio number
+    date: '2025-01-15',         // Issue date
+    total: 500000,              // Document total
+    recipient: '87654321-9'     // Recipient RUT
+);
+
+if ($response->isValid()) {
+    echo "Document validated by SII!";
+    echo "Status: " . $response->getStatus();
+} else {
+    echo "Document not found or invalid";
+}
+```
+
+## Signature Validation
+
+Validate a document's electronic signature with SII:
+
+```php
+// Get TED (electronic stamp) from document
+$ted = $document->getTED();
+
+$response = $siiWorker->validateDocumentSignature(
+    request: $request,
+    company: '12345678-5',
+    document: 33,
+    number: 150,
+    date: '2025-01-15',
+    total: 500000,
+    recipient: '87654321-9',
+    signature: $ted  // Electronic stamp (TED)
+);
+
+if ($response->isValid()) {
+    echo "Signature verified by SII!";
+} else {
+    echo "Invalid signature: " . $response->getMessage();
+}
+```
+
+## Authentication
+
+Authenticate with SII to get a token for web services (usually handled automatically):
+
+```php
+try {
+    $token = $siiWorker->authenticate($request);
+    echo "Authentication successful. Token: {$token}";
+} catch (\Exception $e) {
+    echo "Authentication failed: " . $e->getMessage();
+}
+```
+
+<Tip>
+  The `SiiLazyWorker` handles authentication automatically. You typically don't need to call `authenticate()` directly.
+</Tip>
+
+## Advanced: Custom Web Service Calls
+
+For advanced users, consume any SII web service directly:
+
+```php
+$response = $siiWorker->consumeWebservice(
+    request: $request,
+    service: 'CrSeed',          // Service name
+    function: 'getSeed',        // Function to call
+    args: [],                   // Arguments
+    retry: 3                    // Retry attempts
+);
+
+// Response is an XmlDocument
+$responseData = $response->toArray();
+```
+
+## Complete Workflow Example
+
+Here's a complete example of creating, sending, and tracking a document:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente;
+
+// 1. Create document
+$documentComponent = $app->getPackage('billing')->getComponent('document');
+$bag = $documentComponent->bill(
+    data: $invoiceData,
+    caf: $cafXml,
+    certificate: $certificate
+);
+$document = $bag->getDocument();
+
+// 2. Create envelope (assuming you have envelope builder)
+$envelope = $envelopeBuilder->build([$document]);
+
+// 3. Setup SII request
+$integrationComponent = $app->getPackage('billing')->getComponent('integration');
+$siiWorker = $integrationComponent->getSiiLazyWorker();
+
+$request = new \libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest(
+    certificate: $certificate,
+    options: ['ambiente' => SiiAmbiente::CERTIFICACION]
+);
+
+// 4. Send to SII
+try {
+    $trackId = $siiWorker->sendXmlDocument(
+        request: $request,
+        doc: $envelope->getXmlDocument(),
+        company: '12345678-5',
+        compress: true
+    );
+    
+    echo "Document sent! Track ID: {$trackId}\n";
+    
+    // 5. Wait a bit for processing
+    sleep(30);
+    
+    // 6. Check status
+    $statusResponse = $siiWorker->checkXmlDocumentSentStatus(
+        request: $request,
+        trackId: $trackId,
+        company: '12345678-5'
+    );
+    
+    if ($statusResponse->isAccepted()) {
+        echo "Document accepted by SII!\n";
+        // Save to database, notify user, etc.
+    } elseif ($statusResponse->isRejected()) {
+        echo "Document rejected: " . $statusResponse->getMessage() . "\n";
+        // Log error, notify admin, etc.
+    } else {
+        echo "Document still processing. Check again later.\n";
+    }
+    
+} catch (\Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+    // Handle error
+}
+```
+
+## Status Polling Strategy
+
+Implement smart polling to check document status:
+
+```php
+function pollDocumentStatus(
+    $siiWorker,
+    $request,
+    $trackId,
+    $company,
+    $maxAttempts = 10,
+    $initialDelay = 30
+) {
+    $attempt = 0;
+    $delay = $initialDelay;
+    
+    while ($attempt < $maxAttempts) {
+        sleep($delay);
+        
+        try {
+            $response = $siiWorker->checkXmlDocumentSentStatus(
+                request: $request,
+                trackId: $trackId,
+                company: $company
+            );
+            
+            if ($response->isAccepted() || $response->isRejected()) {
+                return $response;  // Final status reached
+            }
+            
+            // Still processing, increase delay
+            $delay = min($delay * 1.5, 300);  // Max 5 minutes
+            $attempt++;
+            
+        } catch (\Exception $e) {
+            echo "Attempt {$attempt} failed: " . $e->getMessage() . "\n";
+            $attempt++;
+        }
+    }
+    
+    throw new \Exception("Max polling attempts reached");
+}
+
+// Usage
+try {
+    $finalStatus = pollDocumentStatus(
+        $siiWorker,
+        $request,
+        $trackId,
+        '12345678-5'
+    );
+    
+    echo "Final status: " . $finalStatus->getStatus();
+} catch (\Exception $e) {
+    echo "Polling failed: " . $e->getMessage();
+}
+```
+
+## Environment Switching
+
+Easily switch between certification and production:
+
+```php
+class SiiService
+{
+    private $siiWorker;
+    private $certificate;
+    private $isProduction;
+    
+    public function __construct($siiWorker, $certificate, $isProduction = false)
+    {
+        $this->siiWorker = $siiWorker;
+        $this->certificate = $certificate;
+        $this->isProduction = $isProduction;
+    }
+    
+    private function getRequest()
+    {
+        return new SiiRequest(
+            certificate: $this->certificate,
+            options: [
+                'ambiente' => $this->isProduction 
+                    ? SiiAmbiente::PRODUCCION 
+                    : SiiAmbiente::CERTIFICACION,
+            ]
+        );
+    }
+    
+    public function sendDocument($xmlDocument, $company)
+    {
+        return $this->siiWorker->sendXmlDocument(
+            request: $this->getRequest(),
+            doc: $xmlDocument,
+            company: $company,
+            compress: true
+        );
+    }
+    
+    public function checkStatus($trackId, $company)
+    {
+        return $this->siiWorker->checkXmlDocumentSentStatus(
+            request: $this->getRequest(),
+            trackId: $trackId,
+            company: $company
+        );
+    }
+}
+
+// Usage
+$siiService = new SiiService(
+    $siiWorker,
+    $certificate,
+    isProduction: false  // Use certification mode
+);
+```
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="Connection timeouts">
+    SII web services can be slow. Implement retry logic:
+    
+    ```php
+    $trackId = $siiWorker->sendXmlDocument(
+        request: $request,
+        doc: $xmlDocument,
+        company: $company,
+        compress: true,
+        retry: 5  // Retry up to 5 times
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="Invalid certificate">
+    Ensure your certificate is valid and authorized for the company RUT:
+    
+    ```php
+    try {
+        $token = $siiWorker->authenticate($request);
+    } catch (\libredte\lib\Core\Package\Billing\Component\Integration\Exception\SiiAuthenticateException $e) {
+        echo "Authentication failed. Check certificate validity and RUT authorization.";
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Document rejected by SII">
+    Common rejection reasons:
+    - Invalid signature
+    - Duplicate folio
+    - Schema validation errors
+    - Business rule violations
+    
+    Check the response message for details:
+    
+    ```php
+    if ($response->isRejected()) {
+        $message = $response->getMessage();
+        $details = $response->getDetails();
+        // Log and handle accordingly
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Documents" icon="file-invoice" href="/guides/creating-documents">
+    Learn how to create electronic documents
+  </Card>
+  
+  <Card title="Document Validation" icon="check-circle" href="/guides/document-validation">
+    Validate documents before sending to SII
+  </Card>
+</CardGroup>

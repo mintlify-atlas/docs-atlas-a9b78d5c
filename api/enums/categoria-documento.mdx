@@ -1,0 +1,121 @@
+---
+title: CategoriaDocumento
+description: Enum de categorías de documentos tributarios según su clasificación oficial
+---
+
+`CategoriaDocumento` es un enum PHP que define las categorías de los documentos según su clasificación en el sistema tributario chileno.
+
+## Namespace
+
+```php
+libredte\lib\Core\Package\Billing\Component\Document\Enum\CategoriaDocumento
+```
+
+## Casos del Enum
+
+El enum define las siguientes categorías de documentos:
+
+<ResponseField name="TRIBUTARIO" type="string" default="T">
+  Tributario oficial del SII - Documentos tributarios oficiales reconocidos por el Servicio de Impuestos Internos
+</ResponseField>
+
+<ResponseField name="INFORMATIVO" type="string" default="I">
+  Informativo oficial del SII - Documentos informativos oficiales del Servicio de Impuestos Internos
+</ResponseField>
+
+<ResponseField name="REFERENCIA" type="string" default="R">
+  Referencia no oficial del SII - Documentos de referencia que no son oficiales del SII
+</ResponseField>
+
+## Métodos Públicos
+
+### getCodigo()
+
+Entrega el código de la categoría del documento.
+
+```php
+public function getCodigo(): string
+```
+
+**Retorna:** `string` - El código de la categoría (T, I o R)
+
+**Ejemplo:**
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CategoriaDocumento;
+
+$categoria = CategoriaDocumento::TRIBUTARIO;
+echo $categoria->getCodigo(); // "T"
+```
+
+### getNombre()
+
+Entrega el nombre descriptivo de la categoría.
+
+```php
+public function getNombre(): string
+```
+
+**Retorna:** `string` - Descripción completa de la categoría
+
+**Ejemplo:**
+```php
+$categoria = CategoriaDocumento::INFORMATIVO;
+echo $categoria->getNombre(); // "Informativo oficial del SII."
+```
+
+## Ejemplo de Uso
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CategoriaDocumento;
+
+// Uso básico
+$categoria = CategoriaDocumento::TRIBUTARIO;
+
+echo "Código: " . $categoria->getCodigo() . "\n";
+// Código: T
+
+echo "Descripción: " . $categoria->getNombre() . "\n";
+// Descripción: Tributario oficial del SII.
+
+// Verificar categoría
+if ($categoria === CategoriaDocumento::TRIBUTARIO) {
+    echo "Este es un documento tributario oficial\n";
+}
+
+// Iterar sobre todas las categorías
+foreach (CategoriaDocumento::cases() as $cat) {
+    echo sprintf(
+        "[%s] %s\n",
+        $cat->getCodigo(),
+        $cat->getNombre()
+    );
+}
+
+// Salida:
+// [T] Tributario oficial del SII.
+// [I] Informativo oficial del SII.
+// [R] Referencia no oficial del SII.
+```
+
+## Integración con TipoDocumento
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\TipoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CategoriaDocumento;
+
+// La entidad TipoDocumento utiliza este enum
+$tipoDoc = new TipoDocumento(33, 'Factura electrónica');
+$categoria = $tipoDoc->getCategoria();
+
+if ($categoria === CategoriaDocumento::TRIBUTARIO) {
+    echo "Documento tributario que debe ser reportado al SII\n";
+}
+```
+
+## Notas
+
+- Este enum utiliza PHP 8.1+ Backed Enums con tipo `string`
+- Las categorías permiten clasificar documentos según su naturaleza oficial
+- Los documentos tributarios (T) son los que tienen efectos tributarios legales
+- Los documentos informativos (I) son oficiales pero no tienen efectos tributarios directos
+- Los documentos de referencia (R) son auxiliares y no son oficiales del SII

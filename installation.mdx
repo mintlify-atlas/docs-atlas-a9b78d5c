@@ -1,0 +1,214 @@
+---
+title: Installation
+description: Install and configure LibreDTE Core in your PHP project using Composer
+---
+
+# Installation
+
+LibreDTE Core is distributed via Composer and requires PHP 8.5 or higher.
+
+## Requirements
+
+Before installing, ensure your system meets these requirements:
+
+<Steps>
+  <Step title="PHP Version">
+    PHP 8.5 or higher is required
+    
+    ```bash
+    php -v
+    ```
+  </Step>
+  
+  <Step title="Required Extensions">
+    Verify the following PHP extensions are installed:
+    
+    - `ext-curl`: HTTP communication with SII
+    - `ext-json`: JSON data handling
+    - `ext-mbstring`: Multibyte string processing
+    - `ext-openssl`: Digital signatures and encryption
+    - `ext-soap`: SOAP webservice client for SII
+    
+    ```bash
+    php -m | grep -E "curl|json|mbstring|openssl|soap"
+    ```
+  </Step>
+  
+  <Step title="Composer">
+    Composer is required for dependency management
+    
+    ```bash
+    composer --version
+    ```
+    
+    If not installed, get it from [getcomposer.org](https://getcomposer.org)
+  </Step>
+</Steps>
+
+## Install via Composer
+
+<CodeGroup>
+
+```bash Composer Require
+composer require libredte/libredte-lib-core
+```
+
+```json composer.json
+{
+  "require": {
+    "libredte/libredte-lib-core": "*"
+  }
+}
+```
+
+</CodeGroup>
+
+<Note>
+  LibreDTE Core has `minimum-stability: dev` with `prefer-stable: true`. This allows installation of development dependencies while preferring stable versions when available.
+</Note>
+
+## Verify Installation
+
+After installation, verify LibreDTE Core is properly installed:
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use libredte\lib\Core\Application;
+
+// Create application instance
+$app = Application::getInstance('prod', false);
+
+echo "LibreDTE Core installed successfully!\n";
+```
+
+## Dependencies
+
+LibreDTE Core automatically installs these key dependencies:
+
+<CardGroup cols={2}>
+  <Card title="Symfony Components">
+    - `symfony/cache`: Caching support
+    - `symfony/filesystem`: File operations
+    - `symfony/mailer`: Email functionality
+    - `symfony/mime`: MIME type handling
+  </Card>
+  
+  <Card title="Document Processing">
+    - `mpdf/mpdf`: PDF generation
+    - `tecnickcom/tcpdf`: Alternative PDF library
+    - `league/csv`: CSV processing
+    - `phpseclib/phpseclib`: Cryptography
+  </Card>
+</CardGroup>
+
+## Environment Configuration
+
+LibreDTE Core supports different environments:
+
+<CodeGroup>
+
+```php Development Environment
+<?php
+
+use libredte\lib\Core\Application;
+
+// Development environment with debug enabled
+$app = Application::getInstance('dev', true);
+```
+
+```php Production Environment
+<?php
+
+use libredte\lib\Core\Application;
+
+// Production environment without debug
+$app = Application::getInstance('prod', false);
+```
+
+```php Using Environment Interface
+<?php
+
+use libredte\lib\Core\Application;
+use Derafu\Kernel\Contract\EnvironmentInterface;
+
+// Custom environment configuration
+$app = Application::getInstance($customEnvironment, false);
+```
+
+</CodeGroup>
+
+## Global Helper Function
+
+LibreDTE Core provides a global helper function for convenient access:
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+// Load the bootstrap file
+require 'vendor/libredte/libredte-lib-core/app/bootstrap.php';
+
+// Use the global helper function
+$app = libredte_lib('prod', false);
+
+// Access services
+$billingPackage = $app->getService('libredte.lib.billing');
+```
+
+<Warning>
+  The singleton pattern via `getInstance()` is provided for convenience but is not recommended when using dependency injection. In DI environments, inject the Application instance from your container instead.
+</Warning>
+
+## Next Steps
+
+Now that LibreDTE Core is installed:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Create your first electronic invoice
+  </Card>
+  
+  <Card title="Core Concepts" icon="gear" href="/concepts/architecture">
+    Understand the architecture and components
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="PHP Version Error">
+    LibreDTE Core requires PHP 8.5+. If you see version errors:
+    
+    ```bash
+    # Check your PHP version
+    php -v
+    
+    # Update PHP or use a different version
+    composer config platform.php 8.5
+    ```
+  </Accordion>
+  
+  <Accordion title="Missing PHP Extensions">
+    Install required extensions based on your system:
+    
+    ```bash
+    # Debian/Ubuntu
+    sudo apt install php8.5-curl php8.5-mbstring php8.5-soap php8.5-xml
+    
+    # macOS with Homebrew
+    brew install php@8.5
+    ```
+  </Accordion>
+  
+  <Accordion title="Composer Memory Limit">
+    If Composer runs out of memory during installation:
+    
+    ```bash
+    COMPOSER_MEMORY_LIMIT=-1 composer require libredte/libredte-lib-core
+    ```
+  </Accordion>
+</AccordionGroup>

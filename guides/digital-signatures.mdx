@@ -1,0 +1,376 @@
+---
+title: Digital Signatures
+description: Sign electronic documents with digital certificates and validate XML signatures in LibreDTE Core
+---
+
+Digital signatures are essential for Chilean electronic tax documents. LibreDTE Core handles both the electronic stamp (Timbre Electrónico/TED) and the XML digital signature using your digital certificate.
+
+## Overview
+
+LibreDTE Core implements two types of signatures:
+
+1. **Timbre Electrónico (TED)**: A stamp using the private key from your CAF (Código de Autorización de Folios)
+2. **XML Digital Signature**: A standard XML signature using your digital certificate (firma electrónica)
+
+## Digital Certificate Setup
+
+Digital certificates in Chile are typically provided as `.pfx` or `.p12` files. You need both the certificate data and its password.
+
+<CodeGroup>
+```php From File
+$certificate = [
+    'data' => file_get_contents('/path/to/certificate.pfx'),
+    'password' => 'your_certificate_password',
+];
+
+// Use with bill() method
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $caf,
+    certificate: $certificate
+);
+```
+
+```php Using CertificateLoader
+use Derafu\Certificate\Service\CertificateLoader;
+
+$certificateLoader = new CertificateLoader();
+
+// Load from file
+$certificate = $certificateLoader->load(
+    '/path/to/certificate.pfx',
+    'your_password'
+);
+
+// Or from string
+$certificateData = file_get_contents('/path/to/certificate.pfx');
+$certificate = $certificateLoader->loadData(
+    $certificateData,
+    'your_password'
+);
+
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $caf,
+    certificate: $certificate
+);
+```
+</CodeGroup>
+
+## Signature Process
+
+When you provide a certificate to the `bill()` method, LibreDTE automatically signs the document:
+
+<Steps>
+  <Step title="Timestamp Addition">
+    A timestamp (`TmstFirma`) is added to the document. You can provide a custom timestamp or use the current time.
+    
+    ```php
+    $bag = $documentComponent->bill(
+        data: $documentData,
+        caf: $caf,
+        certificate: $certificate,
+        options: [
+            'builder' => [
+                'timestamp' => '2025-01-15T14:30:00',
+            ],
+        ]
+    );
+    ```
+  </Step>
+
+  <Step title="Certificate Validation">
+    The certificate validity is checked against the timestamp. The certificate must be active at the time of signing.
+    
+    ```php
+    // AbstractBuilderStrategy.php:201
+    if (!$certificate->isActive($timestamp)) {
+        throw new BuilderException(
+            'El certificado digital no está vigente en el tiempo especificado'
+        );
+    }
+    ```
+  </Step>
+
+  <Step title="XML Signature">
+    The document is signed using the XML-DSig standard with the certificate's private key.
+    
+    ```php
+    // AbstractBuilderStrategy.php:218-222
+    $xmlSigned = $this->signatureService->signXml(
+        $xmlDocument,
+        $certificate,
+        $bag->getId()
+    );
+    ```
+  </Step>
+</Steps>
+
+## Electronic Stamp (TED)
+
+The TED (Timbre Electrónico) is created using the CAF's private key. This happens automatically when you provide a CAF:
+
+```php
+// The stamping process (AbstractBuilderStrategy.php:123-185)
+
+// 1. Verify folio is in CAF range
+if (!$caf->enRango($document->getFolio())) {
+    throw new BuilderException('Folio fuera de rango');
+}
+
+// 2. Verify CAF is valid at timestamp
+if (!$caf->vigente($timestamp)) {
+    throw new BuilderException('CAF vencido');
+}
+
+// 3. Generate TED data structure
+$tedData = $document->getPlantillaTED();
+$tedData['TED']['DD']['CAF'] = $cafArray['AUTORIZACION']['CAF'];
+$tedData['TED']['DD']['TSTED'] = $timestamp;
+
+// 4. Sign with CAF private key using SHA1
+$timbre = $this->signatureService->sign(
+    $ddToStamp,
+    $caf->getPrivateKey(),
+    OPENSSL_ALGO_SHA1
+);
+
+// 5. Add stamp to document
+$tedData['TED']['FRMT']['@value'] = $timbre;
+```
+
+<Note>
+  The TED uses SHA1 algorithm as specified by SII, while the XML signature typically uses SHA256 or stronger algorithms.
+</Note>
+
+## Validating Signatures
+
+LibreDTE Core provides methods to validate signatures on existing documents:
+
+<CodeGroup>
+```php Validate XML Signature
+$validatorWorker = $documentComponent->getValidatorWorker();
+
+try {
+    // Validate from DocumentBag
+    $validatorWorker->validateSignature($bag);
+    echo "Signature is valid!";
+} catch (\Exception $e) {
+    echo "Invalid signature: " . $e->getMessage();
+}
+```
+
+```php Validate from XML String
+// Load XML document
+$xmlString = file_get_contents('/path/to/dte.xml');
+
+try {
+    $validatorWorker->validateSignature($xmlString);
+    echo "Document signature is valid!";
+} catch (\Exception $e) {
+    echo "Signature validation failed: " . $e->getMessage();
+}
+```
+
+```php Validate XML Schema
+// Validate document structure against SII XSD schema
+try {
+    $validatorWorker->validateSchema($bag);
+    echo "Document structure is valid!";
+} catch (\Exception $e) {
+    echo "Schema validation failed: " . $e->getMessage();
+}
+```
+</CodeGroup>
+
+## Certificate Information
+
+Retrieve information from a loaded certificate:
+
+```php
+use Derafu\Certificate\Service\CertificateLoader;
+
+$loader = new CertificateLoader();
+$certificate = $loader->load('/path/to/certificate.pfx', 'password');
+
+// Get certificate details
+$commonName = $certificate->getName();      // Certificate owner
+$issuer = $certificate->getIssuer();        // Certificate authority
+$serialNumber = $certificate->getSerial();  // Serial number
+$validFrom = $certificate->getFrom();       // Start validity date
+$validTo = $certificate->getTo();           // End validity date
+
+// Check if certificate is currently valid
+$isActive = $certificate->isActive();
+
+// Check if valid at specific time
+$wasActiveYesterday = $certificate->isActive('2025-01-14T10:00:00');
+
+echo "Certificate: {$commonName}\n";
+echo "Valid from: {$validFrom} to {$validTo}\n";
+echo "Currently active: " . ($isActive ? 'Yes' : 'No');
+```
+
+## Signing Without CAF
+
+You can sign a document with only a certificate (no electronic stamp):
+
+```php
+// Create document without CAF
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: null,  // No CAF = no electronic stamp
+    certificate: $certificate  // Only digital signature
+);
+
+// The document will be signed but won't have a TED stamp
+$document = $bag->getDocument();
+```
+
+<Warning>
+  Documents without a TED stamp cannot be sent to SII. The CAF is required for all documents that need to be reported to the tax authority.
+</Warning>
+
+## Signing Existing Documents
+
+You can add a signature to a document that was created without one:
+
+```php
+// Load existing XML
+$xmlDocument = new \Derafu\Xml\XmlDocument();
+$xmlDocument->loadXml($existingXml);
+
+// Create bag from XML
+$documentBagManager = $documentComponent->getDocumentBagManagerWorker();
+$bag = $documentBagManager->create($xmlDocument, normalizeAll: false);
+
+// Add certificate to bag
+$bag->setCertificate($certificate);
+
+// Sign
+$builderWorker = $documentComponent->getBuilderWorker();
+$strategy = $builderWorker->getStrategy($bag->getAlias());
+
+// Use protected sign method via builder
+$builderWorker->build($bag);
+
+$signedDocument = $bag->getDocument();
+```
+
+## Certificate Validation Options
+
+Control certificate validation behavior:
+
+```php
+$options = [
+    'builder' => [
+        // Use specific timestamp for validation
+        'timestamp' => '2025-01-15T10:00:00',
+    ],
+];
+
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $caf,
+    certificate: $certificate,
+    options: $options
+);
+```
+
+## Signature Verification with SII
+
+For production documents, verify signatures with SII's web service:
+
+```php
+$integrationComponent = $app->getPackage('billing')
+    ->getComponent('integration');
+
+$siiWorker = $integrationComponent->getSiiLazyWorker();
+
+// Create SII request
+$request = new \libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest(
+    certificate: $certificate,
+    options: [
+        'ambiente' => \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION,
+    ]
+);
+
+// Validate signature with SII
+$response = $siiWorker->validateDocumentSignature(
+    request: $request,
+    company: '12345678-5',
+    document: 33,  // Document type
+    number: 150,   // Folio
+    date: '2025-01-15',
+    total: 500000,
+    recipient: '87654321-9',
+    signature: $document->getTED()  // Electronic stamp
+);
+
+if ($response->isValid()) {
+    echo "Signature verified by SII!";
+} else {
+    echo "SII rejected signature: " . $response->getMessage();
+}
+```
+
+<Tip>
+  Always test signature validation in SII's certification environment before using production mode.
+</Tip>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Certificate expired or not yet valid">
+    Ensure your certificate is valid for the timestamp you're using. Check certificate validity dates:
+    
+    ```php
+    if (!$certificate->isActive($timestamp)) {
+        echo "Certificate not valid at {$timestamp}";
+        echo "Valid from: {$certificate->getFrom()}";
+        echo "Valid to: {$certificate->getTo()}";
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Invalid certificate password">
+    If you get errors loading the certificate, verify the password is correct:
+    
+    ```php
+    try {
+        $certificate = $loader->load($path, $password);
+    } catch (\Exception $e) {
+        echo "Failed to load certificate. Check password.";
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Signature validation fails">
+    Common causes:
+    - XML was modified after signing
+    - Certificate doesn't match the signature
+    - Incorrect signature algorithm
+    
+    Use the validator to get detailed error messages:
+    
+    ```php
+    try {
+        $validatorWorker->validateSignature($xmlDocument);
+    } catch (\Derafu\Signature\Exception\SignatureException $e) {
+        echo "Signature error: " . $e->getMessage();
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Document Validation" icon="check-circle" href="/guides/document-validation">
+    Validate documents against SII schemas and business rules
+  </Card>
+  
+  <Card title="SII Integration" icon="cloud" href="/guides/sii-integration">
+    Send signed documents to SII and verify their status
+  </Card>
+</CardGroup>

@@ -1,0 +1,133 @@
+---
+title: Application
+description: Main application class for LibreDTE Core with dependency injection container and singleton pattern support
+---
+
+The `Application` class is the main entry point for LibreDTE Core. It extends `MicroKernel` and provides access to the dependency injection container, package registry, and services.
+
+## Class Definition
+
+```php
+namespace libredte\lib\Core;
+
+final class Application extends MicroKernel implements ApplicationInterface
+```
+
+## Singleton Pattern
+
+The Application class implements a singleton pattern for simple usage scenarios. However, when using dependency injection containers, it's recommended to register the application in your DI container instead of using the singleton.
+
+### getInstance()
+
+Get or create the singleton instance of the application.
+
+```php
+public static function getInstance(
+    string|EnvironmentInterface $environment = 'dev',
+    bool $debug = true
+): self
+```
+
+<ParamField path="environment" type="string|EnvironmentInterface" default="'dev'">
+  The environment name or environment interface instance. Common values are `'dev'`, `'prod'`, or `'test'`.
+</ParamField>
+
+<ParamField path="debug" type="bool" default="true">
+  Whether to enable debug mode. When enabled, provides detailed error messages and logging.
+</ParamField>
+
+<ResponseField name="return" type="Application">
+  The singleton instance of the Application class.
+</ResponseField>
+
+<Note>
+  When using dependency injection and registering the LibreDTE application in a DI container, it's not necessary or recommended to use this method. Use your DI container to obtain the application instance instead.
+</Note>
+
+#### Example
+
+```php
+use libredte\lib\Core\Application;
+
+// Get the application instance in development mode
+$app = Application::getInstance('dev', true);
+
+// Get the application instance in production mode
+$app = Application::getInstance('prod', false);
+```
+
+## Public Methods
+
+### getPackageRegistry()
+
+Get the package registry containing all available LibreDTE packages.
+
+```php
+public function getPackageRegistry(): PackageRegistry
+```
+
+<ResponseField name="return" type="PackageRegistry">
+  The package registry instance containing access to all LibreDTE packages (billing, etc.).
+</ResponseField>
+
+#### Example
+
+```php
+$app = Application::getInstance();
+$registry = $app->getPackageRegistry();
+
+// Access the billing package
+$billingPackage = $registry->getBillingPackage();
+```
+
+### getService()
+
+Retrieve a service from the dependency injection container by its ID.
+
+```php
+public function getService(string $id): mixed
+```
+
+<ParamField path="id" type="string" required>
+  The service identifier registered in the DI container.
+</ParamField>
+
+<ResponseField name="return" type="mixed">
+  The requested service instance from the container.
+</ResponseField>
+
+#### Example
+
+```php
+$app = Application::getInstance();
+
+// Get a custom service by ID
+$myService = $app->getService('my.custom.service');
+```
+
+## Configuration
+
+The Application class automatically loads configuration from:
+
+- `config/services.yaml` - Service definitions and parameters
+
+It also registers the following compiler passes:
+
+- `ServiceProcessingCompilerPass` - Processes services with the `libredte.lib.` prefix
+- `ServiceConfigurationCompilerPass` - Handles service configuration with the `libredte.lib.` prefix
+
+## Full Example
+
+```php
+use libredte\lib\Core\Application;
+
+// Initialize the application
+$app = Application::getInstance('prod', false);
+
+// Access packages through the registry
+$registry = $app->getPackageRegistry();
+$billing = $registry->getBillingPackage();
+
+// Access services from the container
+$customService = $app->getService('libredte.lib.my_service');
+```

@@ -1,0 +1,496 @@
+---
+title: PDF Generation
+description: Generate printable PDF versions of Chilean electronic tax documents using LibreDTE Core
+---
+
+LibreDTE Core provides powerful PDF generation capabilities for electronic tax documents, creating printable versions with the electronic stamp (TED) and all required information.
+
+## Overview
+
+The `RendererWorker` handles PDF generation using customizable templates. It supports:
+
+- Standard and custom templates
+- Multiple PDF engines (mPDF, TCPDF)
+- TED barcode/QR code rendering
+- Company logos and branding
+- Detailed item listings
+- Tax calculations and totals
+
+## Basic PDF Generation
+
+Generate a PDF from a document:
+
+<CodeGroup>
+```php Simple PDF
+$documentComponent = $app->getPackage('billing')
+    ->getComponent('document');
+
+// Create document
+$bag = $documentComponent->bill($data, $caf, $certificate);
+
+// Generate PDF
+$rendererWorker = $documentComponent->getRendererWorker();
+$pdfContent = $rendererWorker->render($bag);
+
+// Save to file
+file_put_contents('/path/to/invoice.pdf', $pdfContent);
+
+// Or output to browser
+header('Content-Type: application/pdf');
+header('Content-Disposition: inline; filename="invoice.pdf"');
+echo $pdfContent;
+```
+
+```php With Options
+// Customize PDF rendering
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $caf,
+    certificate: $certificate,
+    options: [
+        'renderer' => [
+            'strategy' => 'template.estandar',
+            'template' => 'estandar',
+            'format' => 'pdf',
+        ],
+    ]
+);
+
+$pdfContent = $rendererWorker->render($bag);
+```
+</CodeGroup>
+
+## Renderer Configuration
+
+The renderer uses a strategy pattern with configurable options:
+
+```php
+// RendererWorker.php:58-64
+protected array $optionsSchema = [
+    '__allowUndefinedKeys' => true,
+    'strategy' => [
+        'types' => 'string',
+        'default' => 'template.estandar',  // Default template
+    ],
+];
+```
+
+### Available Options
+
+<ParamField path="strategy" type="string" default="template.estandar">
+  The rendering strategy to use. Default is the standard LibreDTE template.
+</ParamField>
+
+<ParamField path="template" type="string" default="estandar">
+  Template name within the strategy.
+</ParamField>
+
+<ParamField path="format" type="string" default="pdf">
+  Output format (typically 'pdf').
+</ParamField>
+
+## PDF Rendering Process
+
+The rendering process follows these steps:
+
+<Steps>
+  <Step title="Normalize Document Data">
+    The document is fully normalized to ensure all required data is present.
+    
+    ```php
+    // RendererWorker.php:88
+    $bag = $this->documentBagManager->normalize($bag, all: true);
+    ```
+  </Step>
+
+  <Step title="Select Template Strategy">
+    The appropriate rendering strategy is selected based on options.
+    
+    ```php
+    // RendererWorker.php:84
+    $strategy = $this->getStrategy($options->get('strategy'));
+    ```
+  </Step>
+
+  <Step title="Render to PDF">
+    The strategy renders the document using the configured template.
+    
+    ```php
+    // RendererWorker.php:91
+    $renderedData = $strategy->render($bag);
+    ```
+  </Step>
+
+  <Step title="Return Binary Content">
+    The PDF binary content is returned as a string.
+  </Step>
+</Steps>
+
+## Working with Templates
+
+The standard template (`template.estandar`) provides a professional layout:
+
+```php
+// Use standard template
+$options = [
+    'renderer' => [
+        'strategy' => 'template.estandar',
+        'template' => 'estandar',
+        'format' => 'pdf',
+    ],
+];
+
+$bag = $documentComponent->bill($data, $caf, $certificate, $options);
+$pdf = $rendererWorker->render($bag);
+```
+
+### Template Features
+
+The standard template includes:
+
+<CardGroup cols={2}>
+  <Card title="Header Section" icon="heading">
+    - Company logo
+    - Company information (RUT, name, address)
+    - Document type and number
+    - Issue date
+  </Card>
+  
+  <Card title="Recipient Details" icon="user">
+    - Recipient RUT and name
+    - Address and location
+    - Business activity
+  </Card>
+  
+  <Card title="Item Details" icon="list">
+    - Product/service descriptions
+    - Quantities and units
+    - Unit prices
+    - Line totals
+  </Card>
+  
+  <Card title="Totals & TED" icon="barcode">
+    - Subtotals and taxes
+    - Discounts and surcharges
+    - Final total
+    - TED barcode (electronic stamp)
+  </Card>
+</CardGroup>
+
+## Adding Custom Data
+
+Include additional data in PDFs using the LibreDTE data structure:
+
+```php
+$bag = new DocumentBag(
+    inputData: $documentData,
+    libredteData: [
+        'extra' => [
+            'logo' => '/path/to/company-logo.png',
+            'footer_text' => 'Thank you for your business!',
+            'payment_instructions' => 'Bank transfer to account 123456',
+            'terms' => 'Net 30 days',
+        ],
+    ],
+    caf: $caf,
+    certificate: $certificate,
+    options: [
+        'renderer' => [
+            'template' => 'estandar',
+        ],
+    ]
+);
+
+$pdf = $rendererWorker->render($bag);
+```
+
+## PDF Engines
+
+LibreDTE Core supports multiple PDF generation engines:
+
+<Tabs>
+  <Tab title="mPDF">
+    **mPDF** is the default engine, providing excellent Unicode support and advanced features.
+    
+    ```json
+    // composer.json:49
+    "mpdf/mpdf": "^8.2"
+    ```
+    
+    Features:
+    - Full UTF-8 support
+    - Custom fonts
+    - Header/footer templates
+    - Watermarks
+    - Better performance for complex layouts
+  </Tab>
+  
+  <Tab title="TCPDF">
+    **TCPDF** is an alternative engine with broad compatibility.
+    
+    ```json
+    // composer.json:57
+    "tecnickcom/tcpdf": "^6.11"
+    ```
+    
+    Features:
+    - Wide character set support
+    - Barcode generation (for TED)
+    - HTML to PDF conversion
+    - Digital signature support
+  </Tab>
+</Tabs>
+
+## Generate PDF for Multiple Documents
+
+Create PDFs for a batch of documents:
+
+```php
+$documents = [$data1, $data2, $data3];
+$pdfFiles = [];
+
+foreach ($documents as $index => $data) {
+    try {
+        // Create document
+        $bag = $documentComponent->bill($data, $caf, $certificate);
+        
+        // Generate PDF
+        $pdf = $rendererWorker->render($bag);
+        
+        // Save with folio number in filename
+        $folio = $bag->getFolio();
+        $filename = "invoice_{$folio}.pdf";
+        $filepath = "/path/to/pdfs/{$filename}";
+        
+        file_put_contents($filepath, $pdf);
+        $pdfFiles[] = $filepath;
+        
+        echo "Generated: {$filename}\n";
+        
+    } catch (\Exception $e) {
+        echo "Error generating PDF for document {$index}: {$e->getMessage()}\n";
+    }
+}
+
+echo "Generated " . count($pdfFiles) . " PDFs\n";
+```
+
+## Rendering HTML Preview
+
+While the default format is PDF, you can potentially render to HTML for preview:
+
+```php
+$options = [
+    'renderer' => [
+        'format' => 'html',  // If supported by strategy
+    ],
+];
+
+$bag = $documentComponent->bill($data, $caf, $certificate, $options);
+
+try {
+    $htmlContent = $rendererWorker->render($bag);
+    echo $htmlContent;
+} catch (\Exception $e) {
+    echo "HTML rendering not supported by this strategy";
+}
+```
+
+<Note>
+  HTML rendering support depends on the specific template strategy implementation. The standard template focuses on PDF output.
+</Note>
+
+## Complete Example: Invoice to PDF
+
+Full workflow from data to PDF:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent;
+
+// 1. Prepare invoice data
+$invoiceData = [
+    'Encabezado' => [
+        'IdDoc' => [
+            'TipoDTE' => 33,
+            'Folio' => 150,
+            'FchEmis' => date('Y-m-d'),
+        ],
+        'Emisor' => [
+            'RUTEmisor' => '12345678-5',
+            'RznSoc' => 'Mi Empresa S.A.',
+            'GiroEmis' => 'Servicios de TI',
+            'Acteco' => 620200,
+            'DirOrigen' => 'Av. Apoquindo 3000',
+            'CmnaOrigen' => 'Las Condes',
+        ],
+        'Receptor' => [
+            'RUTRecep' => '87654321-9',
+            'RznSocRecep' => 'Cliente SpA',
+            'GiroRecep' => 'Comercio',
+            'DirRecep' => 'Calle Principal 100',
+            'CmnaRecep' => 'Santiago',
+        ],
+    ],
+    'Detalle' => [
+        [
+            'NmbItem' => 'Consultoría desarrollo software',
+            'QtyItem' => 40,
+            'UnmdItem' => 'horas',
+            'PrcItem' => 50000,
+        ],
+        [
+            'NmbItem' => 'Hosting mensual',
+            'QtyItem' => 1,
+            'UnmdItem' => 'mes',
+            'PrcItem' => 100000,
+        ],
+    ],
+];
+
+// 2. Additional PDF data
+$libredteData = [
+    'extra' => [
+        'logo' => '/var/www/assets/logo.png',
+        'payment_info' => [
+            'bank' => 'Banco de Chile',
+            'account' => '1234567890',
+            'account_type' => 'Cuenta Corriente',
+        ],
+        'notes' => 'Pago neto 30 días',
+    ],
+];
+
+// 3. Create document
+$bag = new DocumentBag(
+    inputData: $invoiceData,
+    libredteData: $libredteData,
+    caf: $caf,
+    certificate: $certificate,
+    options: [
+        'renderer' => [
+            'template' => 'estandar',
+        ],
+    ]
+);
+
+// 4. Build document
+$documentComponent = $app->getPackage('billing')->getComponent('document');
+$parserWorker = $documentComponent->getParserWorker();
+$builderWorker = $documentComponent->getBuilderWorker();
+
+$parserWorker->parse($bag);
+$document = $builderWorker->build($bag);
+
+// 5. Generate PDF
+$rendererWorker = $documentComponent->getRendererWorker();
+
+try {
+    $pdfContent = $rendererWorker->render($bag);
+    
+    // 6. Save PDF
+    $filename = "factura_{$bag->getFolio()}.pdf";
+    file_put_contents("/var/invoices/{$filename}", $pdfContent);
+    
+    echo "PDF generated: {$filename}\n";
+    echo "Size: " . strlen($pdfContent) . " bytes\n";
+    
+    // 7. Optional: Email PDF to customer
+    // sendEmailWithAttachment($customer->email, $filename, $pdfContent);
+    
+} catch (\Exception $e) {
+    echo "Error generating PDF: " . $e->getMessage();
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="PDF generation fails">
+    Check that PDF engine dependencies are installed:
+    
+    ```bash
+    composer require mpdf/mpdf
+    composer require tecnickcom/tcpdf
+    ```
+    
+    Verify PHP extensions:
+    ```bash
+    php -m | grep -E 'gd|mbstring'
+    ```
+  </Accordion>
+
+  <Accordion title="TED barcode not showing">
+    Ensure the document has a valid electronic stamp:
+    
+    ```php
+    if (!$bag->getTimbre()) {
+        echo "Document missing TED stamp";
+    }
+    
+    // Check TED content
+    $ted = $document->getTED();
+    if (empty($ted)) {
+        echo "TED is empty - was CAF provided?";
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Company logo not displaying">
+    Verify logo path is accessible and format is supported:
+    
+    ```php
+    $logoPath = '/path/to/logo.png';
+    
+    if (!file_exists($logoPath)) {
+        echo "Logo file not found";
+    }
+    
+    // Supported formats: PNG, JPG, GIF
+    $libredteData = [
+        'extra' => [
+            'logo' => $logoPath,
+        ],
+    ];
+    ```
+  </Accordion>
+
+  <Accordion title="Memory limit errors">
+    Increase PHP memory limit for complex PDFs:
+    
+    ```php
+    ini_set('memory_limit', '256M');
+    
+    // Or in php.ini:
+    // memory_limit = 256M
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Tips
+
+<Tip>
+  **Cache rendered PDFs**: Store generated PDFs to avoid regenerating them for the same document.
+  
+  ```php
+  $cacheKey = "pdf_invoice_{$bag->getFolio()}";
+  
+  if ($cache->has($cacheKey)) {
+      $pdf = $cache->get($cacheKey);
+  } else {
+      $pdf = $rendererWorker->render($bag);
+      $cache->set($cacheKey, $pdf, 3600); // Cache for 1 hour
+  }
+  ```
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Documents" icon="file-invoice" href="/guides/creating-documents">
+    Learn how to create electronic documents
+  </Card>
+  
+  <Card title="SII Integration" icon="cloud" href="/guides/sii-integration">
+    Send documents to SII after generating PDFs
+  </Card>
+</CardGroup>

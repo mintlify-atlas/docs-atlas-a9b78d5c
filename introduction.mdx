@@ -1,0 +1,88 @@
+---
+title: Introduction
+description: LibreDTE Core is a PHP library for electronic invoicing in Chile, providing comprehensive support for DTE (Documento Tributario Electrónico) generation, validation, and SII integration.
+---
+
+# Welcome to LibreDTE Core
+
+LibreDTE Core is a professional PHP library that provides complete electronic invoicing functionality for Chile. It handles DTE (Documento Tributario Electrónico) creation, validation, signing, and integration with the SII (Servicio de Impuestos Internos).
+
+<Note>
+  LibreDTE Core is licensed under AGPL-3.0+. You must release your software's source code publicly under AGPL when using this library. See [terms and conditions](https://core.libredte.cl/legal) for details.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Document Management" icon="file-invoice">
+    Create, validate, and manage various Chilean tax documents including Facturas, Boletas, Notas de Crédito/Débito, and Guías de Despacho.
+  </Card>
+  
+  <Card title="SII Integration" icon="globe">
+    Full integration with SII webservices for document validation, submission, and status checking in both production and certification environments.
+  </Card>
+  
+  <Card title="Digital Signatures" icon="signature">
+    Built-in support for XML digital signatures using certificates, ensuring document authenticity and legal compliance.
+  </Card>
+  
+  <Card title="Trading Parties" icon="users">
+    Manage Emisor (issuer) and Receptor (recipient) entities with complete validation of RUT, addresses, and authorization details.
+  </Card>
+</CardGroup>
+
+## Core Packages
+
+LibreDTE Core is organized into focused packages:
+
+- **Billing Package**: Core functionality for tax document operations
+  - `document`: Create and manage tax documents
+  - `trading_parties`: Handle issuers and recipients
+  - `integration`: SII webservice integration
+  - `identifier`: Manage document folios
+  - `exchange`: Document exchange between parties
+  - `book`: Sales and purchase books
+  - `ownership_transfer`: Property transfer documents
+
+## Requirements
+
+- PHP 8.5 or higher
+- Required PHP extensions: `curl`, `json`, `mbstring`, `openssl`, `soap`
+- Composer for dependency management
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install LibreDTE Core via Composer and configure your environment
+  </Card>
+  
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Create your first electronic invoice in minutes
+  </Card>
+</CardGroup>
+
+## Architecture
+
+LibreDTE Core uses a modern architecture:
+
+- **Dependency Injection**: Built on Symfony's DI container for flexible service management
+- **Package System**: Modular design with focused packages and components
+- **PSR Standards**: Follows PSR-4 autoloading and other PHP standards
+- **Type Safety**: Fully typed with PHP 8.5 features
+
+## Support
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/libredte/libredte-lib-core/issues">
+    Report bugs and request features
+  </Card>
+  
+  <Card title="Source Code" icon="code" href="https://github.com/libredte/libredte-lib-core">
+    View the source code on GitHub
+  </Card>
+</CardGroup>
+
+<Warning>
+  Before using LibreDTE Core in production, ensure you understand and accept the [terms and conditions](https://core.libredte.cl/legal). You must publicly attribute the project and release your code under AGPL.
+</Warning>

@@ -1,0 +1,194 @@
+---
+title: Exchange Component
+description: Send and receive electronic tax documents between parties
+---
+
+The Exchange Component (`billing.exchange`) manages the exchange of electronic tax documents between trading parties, including sending to SII and trading partners.
+
+## Overview
+
+This component handles the complete document exchange workflow, supporting multiple delivery channels and strategies for both sending and receiving documents.
+
+## Workers
+
+The Exchange Component contains the following workers:
+
+<CardGroup cols={2}>
+  <Card title="Sender Worker" icon="paper-plane">
+    Sends documents to recipients using various strategies (SII, email, API)
+  </Card>
+  
+  <Card title="Receiver Worker" icon="inbox">
+    Receives and processes incoming documents from trading partners
+  </Card>
+</CardGroup>
+
+## Main Methods
+
+### send
+
+Sends one or more documents to their recipients.
+
+<ParamField path="bag" type="ExchangeBagInterface" required>
+  Exchange bag containing the documents to send and delivery configuration
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Returns an array with the results of the send operation for each document
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Exchange\ExchangeComponent;
+
+// Send documents
+$results = $exchangeComponent->send($exchangeBag);
+```
+
+### receive
+
+Receives and processes incoming documents.
+
+<ParamField path="bag" type="ExchangeBagInterface" required>
+  Exchange bag configured for receiving documents
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Returns an array of received and processed documents
+</ResponseField>
+
+```php
+// Receive documents
+$documents = $exchangeComponent->receive($exchangeBag);
+```
+
+### handle
+
+Intelligently handles an exchange bag, automatically determining whether to send or receive based on the bag contents.
+
+<ParamField path="bag" type="ExchangeBagInterface" required>
+  Exchange bag to process
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Returns results from either send or receive operation
+</ResponseField>
+
+```php
+// Automatically handle the exchange
+$results = $exchangeComponent->handle($exchangeBag);
+```
+
+## Worker Access Methods
+
+### getSenderWorker
+
+Returns the sender worker for sending documents.
+
+<ResponseField name="return" type="SenderWorkerInterface">
+  Returns the sender worker instance
+</ResponseField>
+
+### getReceiverWorker
+
+Returns the receiver worker for receiving documents.
+
+<ResponseField name="return" type="ReceiverWorkerInterface">
+  Returns the receiver worker instance
+</ResponseField>
+
+### getWorkers
+
+Returns all available workers.
+
+<ResponseField name="return" type="array">
+  Returns an associative array with worker names as keys:
+  - `sender`: SenderWorkerInterface
+  - `receiver`: ReceiverWorkerInterface
+</ResponseField>
+
+## Sending Strategies
+
+The sender worker supports multiple strategies for document delivery:
+
+<AccordionGroup>
+  <Accordion title="DTE Sender Strategy" icon="file-invoice">
+    Sends regular DTE (Documento Tributario Electrónico) documents to SII.
+    
+    Strategy: `DteSenderStrategy`
+    
+    Location: `/workspace/source/src/Package/Billing/Component/Exchange/Worker/Sender/Strategy/Sii/DteSenderStrategy.php`
+  </Accordion>
+  
+  <Accordion title="Boleta Sender Strategy" icon="receipt">
+    Sends boletas (electronic receipts) to SII using the specific boleta endpoint.
+    
+    Strategy: `BoletaSenderStrategy`
+    
+    Location: `/workspace/source/src/Package/Billing/Component/Exchange/Worker/Sender/Strategy/Sii/BoletaSenderStrategy.php`
+  </Accordion>
+</AccordionGroup>
+
+## Exchange Entities
+
+The component works with the following entities:
+
+### Sender
+
+Represents the party sending documents with authentication and configuration.
+
+Entity: `libredte\lib\Core\Package\Billing\Component\Exchange\Entity\Sender`
+
+### Receiver
+
+Represents the party receiving documents with endpoint configuration.
+
+Entity: `libredte\lib\Core\Package\Billing\Component\Exchange\Entity\Receiver`
+
+### PartyIdentifier
+
+Identifies a party in the exchange (RUT, email, etc.).
+
+Entity: `libredte\lib\Core\Package\Billing\Component\Exchange\Entity\PartyIdentifier`
+
+### PartyEndpoint
+
+Defines an endpoint for document delivery (URL, email, etc.).
+
+Entity: `libredte\lib\Core\Package\Billing\Component\Exchange\Entity\PartyEndpoint`
+
+## Usage Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Exchange\ExchangeComponent;
+
+// Get the exchange component
+$exchangeComponent = $billingPackage->getExchangeComponent();
+
+// Prepare an exchange bag with documents
+// The bag contains envelopes with documents to send
+
+// Option 1: Explicitly send
+$sendResults = $exchangeComponent->send($exchangeBag);
+
+// Option 2: Explicitly receive
+$receivedDocs = $exchangeComponent->receive($receiveBag);
+
+// Option 3: Let the component decide
+$results = $exchangeComponent->handle($exchangeBag);
+```
+
+## Document Flow
+
+When handling an exchange:
+
+1. The `handle()` method checks if the bag has envelopes
+2. If envelopes exist, it routes to the sender worker
+3. If no envelopes, it routes to the receiver worker
+4. The appropriate worker processes the documents using the configured strategy
+5. Results are returned to the caller
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\Exchange\ExchangeComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/Exchange/ExchangeComponent.php:40`

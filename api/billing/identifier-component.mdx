@@ -1,0 +1,218 @@
+---
+title: Identifier Component
+description: Manage document folios and CAF (Folio Authorization Code) files
+---
+
+The Identifier Component (`billing.identifier`) manages CAF (Código de Autorización de Folios) files, which authorize the use of folio numbers for electronic tax documents.
+
+## Overview
+
+This component handles loading, validating, providing, and generating CAF files. CAF files are required to assign valid folio numbers to tax documents before they can be sent to SII.
+
+## Workers
+
+The Identifier Component contains the following workers:
+
+<CardGroup cols={2}>
+  <Card title="CAF Loader" icon="download">
+    Loads CAF files from various sources (XML strings, files, providers)
+  </Card>
+  
+  <Card title="CAF Validator" icon="check-circle">
+    Validates CAF file integrity, signatures, and expiration
+  </Card>
+  
+  <Card title="CAF Provider" icon="server">
+    Provides CAF files from configured sources or storage
+  </Card>
+  
+  <Card title="CAF Faker" icon="flask">
+    Generates fake CAF files for testing and development
+  </Card>
+</CardGroup>
+
+## Worker Access Methods
+
+### getCafLoaderWorker
+
+Returns the CAF loader worker for loading CAF files.
+
+<ResponseField name="return" type="CafLoaderWorkerInterface">
+  Returns the CAF loader worker instance
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Identifier\IdentifierComponent;
+
+$cafLoader = $identifierComponent->getCafLoaderWorker();
+$cafBag = $cafLoader->load($cafXmlString);
+```
+
+### getCafValidatorWorker
+
+Returns the CAF validator worker for validating CAF files.
+
+<ResponseField name="return" type="CafValidatorWorkerInterface">
+  Returns the CAF validator worker instance
+</ResponseField>
+
+```php
+$cafValidator = $identifierComponent->getCafValidatorWorker();
+$isValid = $cafValidator->validate($caf);
+```
+
+### getCafProviderWorker
+
+Returns the CAF provider worker for obtaining CAF files from configured sources.
+
+<ResponseField name="return" type="CafProviderWorkerInterface">
+  Returns the CAF provider worker instance
+</ResponseField>
+
+```php
+$cafProvider = $identifierComponent->getCafProviderWorker();
+$caf = $cafProvider->provide($documentType, $issuerRut);
+```
+
+### getCafFakerWorker
+
+Returns the CAF faker worker for generating test CAF files.
+
+<ResponseField name="return" type="CafFakerWorkerInterface">
+  Returns the CAF faker worker instance
+</ResponseField>
+
+```php
+$cafFaker = $identifierComponent->getCafFakerWorker();
+$fakeCaf = $cafFaker->fake($documentType, $folioRange);
+```
+
+### getWorkers
+
+Returns all available workers.
+
+<ResponseField name="return" type="array">
+  Returns an associative array with worker names as keys:
+  - `caf_loader`: CafLoaderWorkerInterface
+  - `caf_validator`: CafValidatorWorkerInterface
+  - `caf_provider`: CafProviderWorkerInterface
+  - `caf_faker`: CafFakerWorkerInterface
+</ResponseField>
+
+## CAF Entity
+
+The component works with the CAF entity that represents a folio authorization file:
+
+### Caf
+
+Represents a CAF (Código de Autorización de Folios) with all its properties:
+
+- Document type (TipoDTE)
+- Issuer RUT
+- Folio range (from/to)
+- Authorization date
+- Private key for signing
+- Digital signature
+
+Entity: `libredte\lib\Core\Package\Billing\Component\Identifier\Entity\Caf`
+
+### CafBag
+
+Container object that holds a CAF along with metadata and validation results.
+
+Support: `libredte\lib\Core\Package\Billing\Component\Identifier\Support\CafBag`
+
+## Usage Examples
+
+### Loading a CAF
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Identifier\IdentifierComponent;
+
+// From XML string
+$cafXml = file_get_contents('folio_33.xml');
+$cafBag = $identifierComponent->getCafLoaderWorker()->load($cafXml);
+$caf = $cafBag->getCaf();
+
+// Access CAF properties
+$documentType = $caf->getTipoDTE();
+$folioFrom = $caf->getDesde();
+$folioTo = $caf->getHasta();
+```
+
+### Validating a CAF
+
+```php
+// Validate CAF integrity and signature
+$cafValidator = $identifierComponent->getCafValidatorWorker();
+
+try {
+    $isValid = $cafValidator->validate($caf);
+    if ($isValid) {
+        echo "CAF is valid";
+    }
+} catch (CafValidatorException $e) {
+    echo "CAF validation failed: " . $e->getMessage();
+}
+```
+
+### Providing a CAF
+
+```php
+// Get a CAF for a specific document type and issuer
+$cafProvider = $identifierComponent->getCafProviderWorker();
+$caf = $cafProvider->provide(
+    documentType: 33, // Factura Electrónica
+    issuerRut: '76123456-7'
+);
+```
+
+### Generating Fake CAFs for Testing
+
+```php
+// Generate a fake CAF for testing (development only)
+$cafFaker = $identifierComponent->getCafFakerWorker();
+$fakeCaf = $cafFaker->fake(
+    documentType: 33,
+    folioRange: ['desde' => 1, 'hasta' => 100],
+    issuerRut: '76123456-7'
+);
+```
+
+## CAF Provider Interface
+
+You can implement custom CAF providers by implementing the `CafProviderInterface`:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafProviderInterface;
+
+class DatabaseCafProvider implements CafProviderInterface
+{
+    public function provide(int $documentType, string $issuerRut): CafInterface
+    {
+        // Load CAF from database
+        // Return CAF instance
+    }
+}
+```
+
+## Fake Provider for Testing
+
+The component includes a fake CAF provider for testing:
+
+Service: `libredte\lib\Core\Package\Billing\Component\Identifier\Service\FakeCafProvider`
+
+## Error Handling
+
+The component throws specific exceptions:
+
+- `CafLoaderException`: CAF loading errors
+- `CafValidatorException`: CAF validation errors
+- `CafException`: General CAF errors
+- `IdentifierException`: General identifier component errors
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\Identifier\IdentifierComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/Identifier/IdentifierComponent.php:41`

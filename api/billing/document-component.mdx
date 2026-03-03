@@ -1,0 +1,192 @@
+---
+title: Document Component
+description: Create, manipulate, and render electronic tax documents (DTE)
+---
+
+The Document Component (`billing.document`) handles the complete lifecycle of tax documents, including creation, validation, rendering, and batch processing.
+
+## Overview
+
+This component provides all functionality needed to work with Chilean electronic tax documents (DTE). It processes input data, validates it, builds XML documents, and prepares them for signing and submission.
+
+## Workers
+
+The Document Component contains the following workers:
+
+<CardGroup cols={2}>
+  <Card title="Builder" icon="hammer">
+    Constructs tax documents from normalized data
+  </Card>
+  
+  <Card title="Parser" icon="code">
+    Parses input data into internal format
+  </Card>
+  
+  <Card title="Validator" icon="check">
+    Validates document data and structure
+  </Card>
+  
+  <Card title="Normalizer" icon="align-left">
+    Normalizes data to standard format
+  </Card>
+  
+  <Card title="Renderer" icon="file-code">
+    Renders documents to XML, PDF, or other formats
+  </Card>
+  
+  <Card title="Sanitizer" icon="broom">
+    Cleans and sanitizes input data
+  </Card>
+  
+  <Card title="Loader" icon="download">
+    Loads existing documents from storage
+  </Card>
+  
+  <Card title="Dispatcher" icon="paper-plane">
+    Dispatches documents for processing
+  </Card>
+  
+  <Card title="Batch Processor" icon="layer-group">
+    Processes multiple documents in batch
+  </Card>
+  
+  <Card title="Document Bag Manager" icon="briefcase">
+    Manages DocumentBag containers
+  </Card>
+</CardGroup>
+
+## Main Methods
+
+### bill
+
+Creates a complete tax document ready for signing and submission.
+
+<ParamField path="data" type="string|array|stdClass" required>
+  Document data in JSON string, array, or object format. Contains all document information like header, items, totals, etc.
+</ParamField>
+
+<ParamField path="caf" type="string|CafInterface|null" default="null">
+  CAF (Folio Authorization Code). Can be:
+  - XML string containing the CAF
+  - CafInterface object
+  - null if not required
+</ParamField>
+
+<ParamField path="certificate" type="string|array|CertificateInterface|null" default="null">
+  Digital certificate for signing. Can be:
+  - Path to certificate file
+  - Array with certificate data
+  - CertificateInterface object
+  - null if signing will be done later
+</ParamField>
+
+<ParamField path="options" type="array|OptionsInterface" default="[]">
+  Additional options for document processing
+</ParamField>
+
+<ResponseField name="return" type="DocumentBagInterface">
+  Returns a DocumentBag containing the processed document with all metadata
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent;
+
+// Create a simple invoice
+$data = [
+    'Encabezado' => [
+        'IdDoc' => [
+            'TipoDTE' => 33,
+            'Folio' => 123,
+        ],
+        'Emisor' => [
+            'RUTEmisor' => '76123456-7',
+            'RznSoc' => 'Mi Empresa',
+        ],
+        'Receptor' => [
+            'RUTRecep' => '77654321-8',
+            'RznSocRecep' => 'Cliente',
+        ],
+    ],
+    'Detalle' => [
+        [
+            'NmbItem' => 'Producto 1',
+            'QtyItem' => 1,
+            'PrcItem' => 1000,
+        ],
+    ],
+];
+
+$cafXml = file_get_contents('folio_33.xml');
+$certificate = '/path/to/certificate.pfx';
+
+$documentBag = $documentComponent->bill(
+    data: $data,
+    caf: $cafXml,
+    certificate: $certificate
+);
+
+// Access the built document
+$document = $documentBag->getDocument();
+```
+
+## Worker Access Methods
+
+<ResponseField name="getBuilderWorker" type="BuilderWorkerInterface">
+  Returns the builder worker for constructing documents
+</ResponseField>
+
+<ResponseField name="getParserWorker" type="ParserWorkerInterface">
+  Returns the parser worker for parsing input data
+</ResponseField>
+
+<ResponseField name="getValidatorWorker" type="ValidatorWorkerInterface">
+  Returns the validator worker for document validation
+</ResponseField>
+
+<ResponseField name="getNormalizerWorker" type="NormalizerWorkerInterface">
+  Returns the normalizer worker for data normalization
+</ResponseField>
+
+<ResponseField name="getRendererWorker" type="RendererWorkerInterface">
+  Returns the renderer worker for document rendering
+</ResponseField>
+
+<ResponseField name="getSanitizerWorker" type="SanitizerWorkerInterface">
+  Returns the sanitizer worker for data sanitization
+</ResponseField>
+
+<ResponseField name="getLoaderWorker" type="LoaderWorkerInterface">
+  Returns the loader worker for loading documents
+</ResponseField>
+
+<ResponseField name="getDispatcherWorker" type="DispatcherWorkerInterface">
+  Returns the dispatcher worker for document dispatch
+</ResponseField>
+
+<ResponseField name="getBatchProcessorWorker" type="BatchProcessorWorkerInterface">
+  Returns the batch processor worker for processing multiple documents
+</ResponseField>
+
+<ResponseField name="getDocumentBagManagerWorker" type="DocumentBagManagerWorkerInterface">
+  Returns the document bag manager worker
+</ResponseField>
+
+<ResponseField name="getWorkers" type="array">
+  Returns an array of all workers with their keys
+</ResponseField>
+
+## Document Processing Flow
+
+When calling the `bill()` method, the component:
+
+1. Loads the CAF if provided as a string
+2. Creates a DocumentBag container with input data, options, CAF, and certificate
+3. Parses the input data through the ParserWorker
+4. Builds the final document through the BuilderWorker
+5. Returns the DocumentBag with the complete document
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/Document/DocumentComponent.php:55`

@@ -1,0 +1,387 @@
+---
+title: Dependency Injection
+description: Master LibreDTE Core's Symfony-based dependency injection container for flexible service management
+---
+
+LibreDTE Core uses **Symfony's Dependency Injection Container** to manage services, promoting loose coupling and testability. This guide covers how to leverage the DI container effectively.
+
+## Container Basics
+
+The dependency injection container is built during application bootstrap and manages all services throughout the application lifecycle.
+
+### Accessing the Container
+
+```php
+use libredte\lib\Core\Application;
+
+$app = new Application('dev', true);
+$container = $app->getContainer();
+
+// Get a service
+$document = $container->get(DocumentComponentInterface::class);
+```
+
+<Note>
+In most cases, you won't access the container directly. Instead, use constructor injection in your own services.
+</Note>
+
+## Service Configuration
+
+All services are defined in `config/services.yaml`:
+
+```yaml services.yaml
+parameters:
+    libredte.lib.core.project_dir: '%kernel.project_dir%'
+
+services:
+    _defaults:
+        autowire: true      # Automatic dependency injection
+        autoconfigure: true # Automatic tag registration
+        public: false       # Services are private by default
+
+    # Package Registry (public service)
+    Derafu\Backbone\Contract\PackageRegistryInterface:
+        class: libredte\lib\Core\PackageRegistry
+        public: true
+        arguments:
+            $packages:
+                billing: '@libredte\lib\Core\Package\Billing\BillingPackage'
+
+    # Billing Package
+    libredte\lib\Core\Package\Billing\BillingPackage: ~
+
+    # Document Component
+    libredte\lib\Core\Package\Billing\Component\Document\Contract\DocumentComponentInterface:
+        class: libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent
+```
+
+## Autowiring
+
+Autowiring automatically resolves dependencies based on type hints:
+
+<Tabs>
+  <Tab title="Automatic">
+    ```php
+    namespace App\Service;
+
+    use libredte\lib\Core\Package\Billing\Component\Document\Contract\DocumentComponentInterface;
+
+    class InvoiceService
+    {
+        public function __construct(
+            private DocumentComponentInterface $document
+        ) {}
+
+        public function createInvoice(array $data): void
+        {
+            $bag = $this->document->bill($data);
+            // ...
+        }
+    }
+    ```
+    The container automatically injects `DocumentComponent` based on the type hint.
+  </Tab>
+  <Tab title="Manual Configuration">
+    ```yaml
+    services:
+        App\Service\InvoiceService:
+            arguments:
+                $document: '@libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent'
+    ```
+    You can also manually configure dependencies when needed.
+  </Tab>
+</Tabs>
+
+## Interface Binding
+
+Services are bound to their interfaces for flexibility:
+
+```yaml
+# Bind interface to implementation
+libredte\lib\Core\Package\Billing\Component\Exchange\Contract\ExchangeComponentInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Exchange\ExchangeComponent
+
+libredte\lib\Core\Package\Billing\Component\Identifier\Contract\IdentifierComponentInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Identifier\IdentifierComponent
+```
+
+<Accordion title="Why Use Interfaces?">
+  **Benefits**:
+  - Easier testing with mock implementations
+  - Ability to swap implementations without changing code
+  - Clear contracts between components
+  - Better IDE support and type safety
+
+  **Example**:
+  ```php
+  // Your code depends on the interface
+  public function __construct(
+      private DocumentComponentInterface $document
+  ) {}
+
+  // The container provides the concrete implementation
+  // You can swap implementations without touching this code
+  ```
+</Accordion>
+
+## Tagged Services
+
+Tagged services enable the Strategy pattern for document-specific logic:
+
+```yaml
+# Define a worker that uses strategies
+libredte\lib\Core\Package\Billing\Component\Document\Contract\BuilderWorkerInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker
+    arguments:
+        $strategies: !tagged_iterator 
+            tag: 'billing.document.builder#strategy'
+            index_by: 'name'
+```
+
+### How Tagged Services Work
+
+<Steps>
+  <Step title="Tag strategies in configuration">
+    Each strategy is automatically tagged based on its interface and attributes.
+  </Step>
+  <Step title="Collect tagged services">
+    The `!tagged_iterator` directive collects all services with the specified tag.
+  </Step>
+  <Step title="Inject as collection">
+    The worker receives an indexed array of all strategy implementations.
+  </Step>
+  <Step title="Select strategy at runtime">
+    The worker selects the appropriate strategy based on document type.
+  </Step>
+</Steps>
+
+### Strategy Examples
+
+<CodeGroup>
+```yaml Builder Strategies
+libredte\lib\Core\Package\Billing\Component\Document\Contract\Builder\Strategy\FacturaAfectaBuilderStrategyInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Document\Worker\Builder\Strategy\FacturaAfectaBuilderStrategy
+
+libredte\lib\Core\Package\Billing\Component\Document\Contract\Builder\Strategy\BoletaAfectaBuilderStrategyInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Document\Worker\Builder\Strategy\BoletaAfectaBuilderStrategy
+```
+
+```yaml Parser Strategies
+libredte\lib\Core\Package\Billing\Component\Document\Worker\Parser\Strategy\Default\JsonParserStrategy: ~
+libredte\lib\Core\Package\Billing\Component\Document\Worker\Parser\Strategy\Default\YamlParserStrategy: ~
+libredte\lib\Core\Package\Billing\Component\Document\Worker\Parser\Strategy\Default\XmlParserStrategy: ~
+```
+
+```yaml Sender Handlers
+libredte\lib\Core\Package\Billing\Component\Exchange\Worker\Sender\Handler\SiiSenderHandler:
+    arguments:
+        $strategies:
+            sii.dte: '@libredte\lib\Core\Package\Billing\Component\Exchange\Worker\Sender\Strategy\Sii\DteSenderStrategy'
+            sii.boleta: '@libredte\lib\Core\Package\Billing\Component\Exchange\Worker\Sender\Strategy\Sii\BoletaSenderStrategy'
+```
+</CodeGroup>
+
+## Lazy Loading
+
+Some services use lazy loading to avoid circular dependencies:
+
+```yaml
+libredte\lib\Core\Package\Billing\Component\Document\Contract\DocumentBagManagerWorkerInterface:
+    class: libredte\lib\Core\Package\Billing\Component\Document\Worker\DocumentBagManagerWorker
+    lazy: true  # Necessary for circular reference with BuilderWorker
+```
+
+<Warning>
+Lazy services are created as proxies and instantiated only when first accessed. This adds minimal overhead but resolves complex dependency graphs.
+</Warning>
+
+## Service Retrieval Methods
+
+<Tabs>
+  <Tab title="Constructor Injection (Recommended)">
+    ```php
+    class MyService
+    {
+        public function __construct(
+            private DocumentComponentInterface $document,
+            private ExchangeComponentInterface $exchange
+        ) {}
+    }
+    ```
+    Best practice: Let the container inject dependencies automatically.
+  </Tab>
+  <Tab title="Via Application">
+    ```php
+    $document = $app->getService(DocumentComponentInterface::class);
+    ```
+    Useful for one-off service access.
+  </Tab>
+  <Tab title="Via Package Registry">
+    ```php
+    $billing = $app->getPackageRegistry()->getBillingPackage();
+    $document = $billing->getDocumentComponent();
+    ```
+    Provides organized access to components.
+  </Tab>
+  <Tab title="Via Container (Not Recommended)">
+    ```php
+    $container = $app->getContainer();
+    $document = $container->get(DocumentComponentInterface::class);
+    ```
+    Avoid direct container access when possible.
+  </Tab>
+</Tabs>
+
+## Compiler Passes
+
+Custom compiler passes enhance the container during compilation:
+
+### ServiceProcessingCompilerPass
+
+Processes services with the `libredte.lib.` prefix:
+
+```php Application.php
+$container->addCompilerPass(
+    new ServiceProcessingCompilerPass('libredte.lib.')
+);
+```
+
+This enables custom service manipulation before the container is frozen.
+
+### ServiceConfigurationCompilerPass
+
+Handles configuration merging and validation:
+
+```php Application.php
+$container->addCompilerPass(
+    new ServiceConfigurationCompilerPass('libredte.lib.')
+);
+```
+
+<Accordion title="What are Compiler Passes?">
+  Compiler passes run during container compilation (before services are instantiated) and can:
+  - Modify service definitions
+  - Register tagged services
+  - Validate configuration
+  - Add service aliases
+  - Optimize service graphs
+
+  They're executed in the build phase, not at runtime, so they don't impact performance.
+</Accordion>
+
+## Extending with Custom Services
+
+You can add your own services to the container:
+
+<Steps>
+  <Step title="Create your service class">
+    ```php
+    namespace App\Service;
+
+    use libredte\lib\Core\Package\Billing\Component\Document\Contract\DocumentComponentInterface;
+
+    class CustomInvoiceHandler
+    {
+        public function __construct(
+            private DocumentComponentInterface $document
+        ) {}
+
+        public function process(array $data): void
+        {
+            // Your custom logic
+        }
+    }
+    ```
+  </Step>
+  <Step title="Register in your application's services.yaml">
+    ```yaml
+    services:
+        App\Service\CustomInvoiceHandler:
+            autowire: true
+    ```
+  </Step>
+  <Step title="Use via dependency injection">
+    ```php
+    class MyController
+    {
+        public function __construct(
+            private CustomInvoiceHandler $handler
+        ) {}
+    }
+    ```
+  </Step>
+</Steps>
+
+## Environment-Specific Configuration
+
+The container supports environment-based configuration:
+
+```php
+// Development environment with debugging
+$app = new Application('dev', true);
+
+// Production environment optimized
+$app = new Application('prod', false);
+```
+
+<CodeGroup>
+```php Development
+// Enable debugging, no caching
+$app = new Application(
+    environment: 'dev',
+    debug: true
+);
+```
+
+```php Production
+// Disable debugging, enable caching
+$app = new Application(
+    environment: 'prod',
+    debug: false
+);
+```
+
+```php Testing
+// Testing with fixtures
+$app = new Application(
+    environment: 'test',
+    debug: true
+);
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Constructor Injection" icon="syringe">
+    Always inject dependencies via constructor rather than accessing the container directly
+  </Card>
+  <Card title="Depend on Interfaces" icon="handshake">
+    Type-hint interfaces, not concrete classes, for maximum flexibility
+  </Card>
+  <Card title="Keep Services Stateless" icon="circle-half-stroke">
+    Services should not maintain state between calls
+  </Card>
+  <Card title="Use Tagged Services for Strategies" icon="tags">
+    Leverage tagged services for the Strategy pattern
+  </Card>
+</CardGroup>
+
+<Warning>
+**Common Pitfalls**:
+- Accessing the container directly in application code (service location anti-pattern)
+- Creating services manually with `new` instead of using DI
+- Making services stateful
+- Circular dependencies without lazy loading
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" href="/concepts/architecture" icon="sitemap">
+    Review the overall architecture
+  </Card>
+  <Card title="Packages & Components" href="/concepts/packages-and-components" icon="boxes">
+    Explore available packages and components
+  </Card>
+</CardGroup>

@@ -1,0 +1,258 @@
+---
+title: Trading Parties Component
+description: Manage commercial parties including issuers, receivers, and representatives
+---
+
+The Trading Parties Component (`billing.trading_parties`) manages all commercial entities involved in electronic tax documents, including issuers, receivers, taxpayers, and authorized representatives.
+
+## Overview
+
+This component provides comprehensive management of trading parties (partes comerciales), handling their creation, validation, and relationships in the context of Chilean electronic invoicing.
+
+## Workers
+
+The Trading Parties Component contains the following worker:
+
+<CardGroup cols={1}>
+  <Card title="Mandatario Manager" icon="user-tie">
+    Manages authorized representatives (mandatarios) who can act on behalf of taxpayers
+  </Card>
+</CardGroup>
+
+## Main Methods
+
+### getMandatarioManagerWorker
+
+Returns the mandatario manager worker for managing authorized representatives.
+
+<ResponseField name="return" type="MandatarioManagerWorkerInterface">
+  Returns the mandatario manager worker instance
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\TradingPartiesComponent;
+
+$mandatarioManager = $tradingPartiesComponent->getMandatarioManagerWorker();
+```
+
+### getWorkers
+
+Returns all available workers.
+
+<ResponseField name="return" type="array">
+  Returns an associative array with worker names as keys:
+  - `mandatario_manager`: MandatarioManagerWorkerInterface
+</ResponseField>
+
+## Entities
+
+The component manages the following entities:
+
+### Emisor (Issuer)
+
+Represents the party issuing a tax document.
+
+**Properties:**
+- RUT (tax ID)
+- Business name (razón social)
+- Trade name (nombre de fantasía)
+- Economic activity code (giro)
+- Address information
+- Contact information
+- DTE authorization details
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor`
+
+Factory: `libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\EmisorFactory`
+
+### Receptor (Receiver)
+
+Represents the party receiving a tax document.
+
+**Properties:**
+- RUT (tax ID)
+- Business name (razón social)
+- Economic activity code (giro)
+- Address information
+- Contact information
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Receptor`
+
+Factory: `libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory`
+
+### Contribuyente (Taxpayer)
+
+Represents a general taxpayer (can be either issuer or receiver).
+
+**Properties:**
+- RUT (tax ID)
+- Business name
+- Tax information
+- Legal entity details
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Contribuyente`
+
+Factory: `libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ContribuyenteFactory`
+
+### Mandatario (Authorized Representative)
+
+Represents an authorized person who can sign documents on behalf of a taxpayer.
+
+**Properties:**
+- RUT (tax ID of representative)
+- Name
+- Authorization details
+- Scope of authorization
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Mandatario`
+
+Factory: `libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\MandatarioFactory`
+
+### PersonaNatural (Natural Person)
+
+Represents an individual taxpayer (natural person as opposed to legal entity).
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\PersonaNatural`
+
+### AutorizacionDte (DTE Authorization)
+
+Represents authorization details for issuing electronic tax documents.
+
+**Properties:**
+- Authorized document types
+- Authorization date
+- Resolution number
+- DTE exchange email (CorreoIntercambioDte)
+
+Entity: `libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\AutorizacionDte`
+
+## Factories
+
+The component provides factories for creating trading party entities:
+
+### EmisorFactory
+
+Creates issuer instances from various data sources.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\EmisorFactory;
+
+$emisor = $emisorFactory->create([
+    'RUTEmisor' => '76123456-7',
+    'RznSoc' => 'Mi Empresa SpA',
+    'GiroEmis' => 'Desarrollo de Software',
+    'DirOrigen' => 'Av. Principal 123',
+    'CmnaOrigen' => 'Santiago',
+]);
+```
+
+### ReceptorFactory
+
+Creates receiver instances from various data sources.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
+
+$receptor = $receptorFactory->create([
+    'RUTRecep' => '77654321-8',
+    'RznSocRecep' => 'Cliente SA',
+    'GiroRecep' => 'Comercio al por Mayor',
+    'DirRecep' => 'Calle Comercio 456',
+    'CmnaRecep' => 'Valparaíso',
+]);
+```
+
+### MandatarioFactory
+
+Creates authorized representative instances.
+
+### ContribuyenteFactory
+
+Creates general taxpayer instances.
+
+## Providers
+
+The component includes provider interfaces for loading trading parties from external sources:
+
+### EmisorProvider
+
+Interface for providing issuer data from databases, APIs, or other sources.
+
+Interface: `libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\EmisorProviderInterface`
+
+Fake Implementation: `libredte\lib\Core\Package\Billing\Component\TradingParties\Service\FakeEmisorProvider`
+
+### ReceptorProvider
+
+Interface for providing receiver data from databases, APIs, or other sources.
+
+Interface: `libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface`
+
+Fake Implementation: `libredte\lib\Core\Package\Billing\Component\TradingParties\Service\FakeReceptorProvider`
+
+## Usage Examples
+
+### Creating an Issuer
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\EmisorFactory;
+
+$emisorFactory = new EmisorFactory();
+
+$emisor = $emisorFactory->create([
+    'RUTEmisor' => '76123456-7',
+    'RznSoc' => 'Mi Empresa SpA',
+    'GiroEmis' => 'Servicios de Tecnología',
+    'Acteco' => 620200,
+    'DirOrigen' => 'Av. Providencia 123',
+    'CmnaOrigen' => 'Providencia',
+    'CiudadOrigen' => 'Santiago',
+]);
+```
+
+### Creating a Receiver
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
+
+$receptorFactory = new ReceptorFactory();
+
+$receptor = $receptorFactory->create([
+    'RUTRecep' => '77654321-8',
+    'RznSocRecep' => 'Cliente Importante SA',
+    'GiroRecep' => 'Distribución',
+    'DirRecep' => 'Calle Principal 456',
+    'CmnaRecep' => 'Las Condes',
+]);
+```
+
+### Managing Mandatarios
+
+```php
+$mandatarioManager = $tradingPartiesComponent->getMandatarioManagerWorker();
+
+// Manage authorized representatives
+// (Specific methods depend on worker implementation)
+```
+
+## Traits
+
+The component provides helpful traits:
+
+### CorreoIntercambioDteInfoTrait
+
+Provides methods for handling DTE exchange email information.
+
+Trait: `libredte\lib\Core\Package\Billing\Component\TradingParties\Trait\CorreoIntercambioDteInfoTrait`
+
+## Error Handling
+
+The component throws specific exceptions:
+
+- `TradingPartiesException`: General trading parties errors
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\TradingParties\TradingPartiesComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/TradingParties/TradingPartiesComponent.php:38`

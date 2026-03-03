@@ -1,0 +1,347 @@
+---
+title: Code Examples
+description: Real-world code examples and common use cases for LibreDTE Core library.
+---
+
+## Overview
+
+This page provides practical examples for common LibreDTE Core operations, extracted from real test cases and production code.
+
+## Basic Setup
+
+### Initialize the Application
+
+All LibreDTE Core operations start with the Application instance:
+
+```php
+use libredte\lib\Core\Application;
+
+$app = Application::getInstance();
+
+// Access the billing package
+$billingPackage = $app
+    ->getPackageRegistry()
+    ->getBillingPackage();
+```
+
+## Working with CAF (Folios)
+
+### Generate a Fake CAF for Testing
+
+<Note>
+  Fake CAFs are useful for development and testing. They won't be accepted by SII in production.
+</Note>
+
+```php
+use libredte\lib\Core\Application;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
+
+$app = Application::getInstance();
+
+// Get the CAF faker worker
+$cafFaker = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getIdentifierComponent()
+    ->getCafFakerWorker();
+
+// Create an emisor
+$emisor = new Emisor('76192083-9');
+
+// Generate CAF for document type 33 (Factura Electrónica)
+// Folios from 1 to 100
+$cafBag = $cafFaker->create($emisor, 33, 1, 100);
+$caf = $cafBag->getCaf();
+
+// Access CAF data
+echo $caf->getEmisor()['rut']; // 76192083-9
+echo $caf->getFolioDesde(); // 1
+echo $caf->getFolioHasta(); // 100
+```
+
+### Load and Validate CAF from XML
+
+```php
+use libredte\lib\Core\Application;
+
+$app = Application::getInstance();
+
+// Get CAF loader and validator
+$cafLoader = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getIdentifierComponent()
+    ->getCafLoaderWorker();
+
+$cafValidator = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getIdentifierComponent()
+    ->getCafValidatorWorker();
+
+// Load CAF from XML file
+$xml = file_get_contents('/path/to/caf/033.xml');
+$cafBag = $cafLoader->load($xml);
+$caf = $cafBag->getCaf();
+
+// Validate the CAF
+$cafValidator->validate($caf);
+```
+
+## Creating Electronic Documents
+
+### Build a Complete DTE (Documento Tributario Electrónico)
+
+```php
+use libredte\lib\Core\Application;
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
+use Derafu\Certificate\Service\CertificateFaker;
+use Derafu\Certificate\Service\CertificateLoader;
+
+$app = Application::getInstance();
+
+// Get required workers
+$builder = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getDocumentComponent()
+    ->getBuilderWorker();
+
+$cafFaker = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getIdentifierComponent()
+    ->getCafFakerWorker();
+
+// Prepare document data
+$data = [
+    'Encabezado' => [
+        'IdDoc' => [
+            'TipoDTE' => 33,
+            'Folio' => 100,
+            'FchEmis' => date('Y-m-d'),
+        ],
+        'Emisor' => [
+            'RUTEmisor' => '76192083-9',
+            'RznSoc' => 'LibreDTE',
+            'GiroEmis' => 'Software',
+            'DirOrigen' => 'Santiago',
+            'CmnaOrigen' => 'Santiago',
+        ],
+        'Receptor' => [
+            'RUTRecep' => '66666666-6',
+            'RznSocRecep' => 'Cliente Demo',
+            'GiroRecep' => 'Servicios',
+            'DirRecep' => 'Santiago',
+            'CmnaRecep' => 'Santiago',
+        ],
+        'Totales' => [
+            'MntNeto' => 10000,
+            'TasaIVA' => 19,
+            'IVA' => 1900,
+            'MntTotal' => 11900,
+        ],
+    ],
+    'Detalle' => [
+        [
+            'NroLinDet' => 1,
+            'NmbItem' => 'Producto de prueba',
+            'QtyItem' => 1,
+            'PrcItem' => 10000,
+            'MontoItem' => 10000,
+        ],
+    ],
+];
+
+// Create emisor and CAF
+$emisor = new Emisor('76192083-9', 'LibreDTE');
+$cafBag = $cafFaker->create($emisor, 33, 100);
+$caf = $cafBag->getCaf();
+
+// Create fake certificate for testing
+$certificateFaker = new CertificateFaker(new CertificateLoader());
+$certificate = $certificateFaker->createFake(id: '76192083-9');
+
+// Build the document
+$bag = new DocumentBag(
+    parsedData: $data,
+    caf: $caf,
+    certificate: $certificate
+);
+$builder->build($bag);
+
+// Get the document
+$document = $bag->getDocument();
+
+// Get XML
+$xml = $document->saveXml();
+echo $xml;
+```
+
+### Validate Document XML and Signature
+
+```php
+use libredte\lib\Core\Application;
+
+$app = Application::getInstance();
+
+$validator = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getDocumentComponent()
+    ->getValidatorWorker();
+
+// Validate XML schema
+$validator->validateSchema($xml);
+
+// Validate digital signature
+$validator->validateSignature($xml);
+```
+
+### Render Document to HTML or PDF
+
+```php
+use libredte\lib\Core\Application;
+
+$app = Application::getInstance();
+
+$renderer = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getDocumentComponent()
+    ->getRendererWorker();
+
+// Render to HTML
+$bag->getOptions()->set('renderer.format', 'html');
+$html = $renderer->render($bag);
+file_put_contents('/path/to/document.html', $html);
+
+// Render to PDF
+$bag->getOptions()->set('renderer.format', 'pdf');
+$pdf = $renderer->render($bag);
+file_put_contents('/path/to/document.pdf', $pdf);
+```
+
+## SII Integration
+
+### Authenticate with SII
+
+```php
+use libredte\lib\Core\Application;
+use libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest;
+use Derafu\Certificate\Service\CertificateLoader;
+
+$app = Application::getInstance();
+
+$siiLazyWorker = $app
+    ->getPackageRegistry()
+    ->getBillingPackage()
+    ->getIntegrationComponent()
+    ->getSiiLazyWorker();
+
+// Load certificate from file
+$certificateLoader = new CertificateLoader();
+$certificate = $certificateLoader->loadFromFile(
+    '/path/to/certificate.pfx',
+    'certificate-password'
+);
+
+// Get authentication token
+$token = $siiLazyWorker->authenticate(new SiiRequest($certificate));
+echo "Token: " . $token;
+```
+
+### Send Document to SII
+
+<Warning>
+  Ensure you're using the correct environment (certification vs production) before sending documents.
+</Warning>
+
+```php
+// Send document to SII
+$siiLazyWorker->sendXmlDocument(
+    new SiiRequest(
+        certificate: $certificate,
+        xml: $xml,
+        ambiente: SiiAmbiente::CERTIFICACION
+    )
+);
+```
+
+### Check Document Status
+
+```php
+// Check if document was accepted by SII
+$response = $siiLazyWorker->checkXmlDocumentSentStatus(
+    new SiiRequest(
+        certificate: $certificate,
+        trackId: $trackId
+    )
+);
+```
+
+## Trading Parties
+
+### Create Emisor and Receptor
+
+```php
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
+
+// Create Emisor
+$emisor = new Emisor(
+    rut: '76192083-9',
+    razonSocial: 'LibreDTE'
+);
+
+// Create Receptor using factory
+$receptorFactory = new ReceptorFactory();
+$receptor = $receptorFactory->create([
+    'rut' => '66666666-6',
+    'razon_social' => 'Cliente Demo',
+]);
+```
+
+## Document Types
+
+Common document type codes:
+
+| Code | Document Type |
+|------|---------------|
+| 33   | Factura Electrónica |
+| 34   | Factura No Afecta o Exenta Electrónica |
+| 39   | Boleta Electrónica |
+| 41   | Boleta Exenta Electrónica |
+| 43   | Liquidación Factura Electrónica |
+| 46   | Factura de Compra Electrónica |
+| 52   | Guía de Despacho Electrónica |
+| 56   | Nota de Débito Electrónica |
+| 61   | Nota de Crédito Electrónica |
+| 110  | Factura de Exportación Electrónica |
+| 111  | Nota de Débito de Exportación Electrónica |
+| 112  | Nota de Crédito de Exportación Electrónica |
+
+## Running Tests
+
+### Execute the Test Suite
+
+```bash
+# Run all tests
+composer tests
+
+# Run unit tests only
+composer tests-unit
+
+# Run functional tests
+composer tests-functional
+
+# Run integration tests (requires SII credentials)
+composer tests-integration
+```
+
+## Next Steps
+
+- Review the [API Reference](/api/billing/overview) for detailed method documentation
+- Check the [Troubleshooting](/resources/troubleshooting) guide for common issues
+- Read the [FAQ](/resources/faq) for frequently asked questions

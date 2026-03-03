@@ -1,0 +1,207 @@
+---
+title: 'Notas de Crédito y Débito'
+description: 'Credit and debit notes - Documents for adjusting previously issued invoices and receipts in Chile'
+---
+
+## Overview
+
+**Notas de Crédito** (Credit Notes) and **Notas de Débito** (Debit Notes) are adjustment documents used to modify or correct previously issued invoices and receipts. LibreDTE Core supports both domestic and export versions.
+
+## Nota de Crédito (Code 61)
+
+<Note>
+**Official Name:** Nota de crédito electrónica  
+**Document Code:** 61  
+**Enum Constant:** `CodigoDocumento::NOTA_CREDITO`  
+**Interface:** `NotaCreditoInterface`
+</Note>
+
+### When to Use Nota de Crédito
+
+Use a Nota de Crédito when you need to:
+
+- Reverse or cancel a previously issued invoice or receipt
+- Apply discounts after the original document was issued
+- Correct errors that result in a lower amount owed
+- Process product returns or refunds
+- Reduce the amount on an original document
+
+### Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\NotaCreditoInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::NOTA_CREDITO;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 61
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Nota de crédito electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Nota de crédito"
+
+// Get alias
+$alias = $documentType->getAlias(); // "nota_credito"
+
+// Get interface class
+$interface = $documentType->getInterface(); // NotaCreditoInterface::class
+```
+
+## Nota de Débito (Code 56)
+
+<Note>
+**Official Name:** Nota de débito electrónica  
+**Document Code:** 56  
+**Enum Constant:** `CodigoDocumento::NOTA_DEBITO`  
+**Interface:** `NotaDebitoInterface`
+</Note>
+
+### When to Use Nota de Débito
+
+Use a Nota de Débito when you need to:
+
+- Add charges to a previously issued invoice or receipt
+- Apply late payment fees or interest
+- Correct errors that result in a higher amount owed
+- Add forgotten items or services
+- Increase the amount on an original document
+
+### Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\NotaDebitoInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::NOTA_DEBITO;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 56
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Nota de débito electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Nota de débito"
+
+// Get alias
+$alias = $documentType->getAlias(); // "nota_debito"
+
+// Get interface class
+$interface = $documentType->getInterface(); // NotaDebitoInterface::class
+```
+
+## Export Versions
+
+For international transactions, LibreDTE Core also supports export versions of these documents:
+
+### Nota de Crédito Exportación (Code 112)
+
+<Note>
+**Official Name:** Nota de crédito de exportación electrónica  
+**Document Code:** 112  
+**Enum Constant:** `CodigoDocumento::NOTA_CREDITO_EXPORTACION`  
+**Interface:** `NotaCreditoExportacionInterface`
+</Note>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+
+$documentType = CodigoDocumento::NOTA_CREDITO_EXPORTACION;
+$codigo = $documentType->getCodigo(); // 112
+```
+
+### Nota de Débito Exportación (Code 111)
+
+<Note>
+**Official Name:** Nota de débito de exportación electrónica  
+**Document Code:** 111  
+**Enum Constant:** `CodigoDocumento::NOTA_DEBITO_EXPORTACION`  
+**Interface:** `NotaDebitoExportacionInterface`
+</Note>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+
+$documentType = CodigoDocumento::NOTA_DEBITO_EXPORTACION;
+$codigo = $documentType->getCodigo(); // 111
+```
+
+## Document Properties
+
+### Nota de Crédito (61)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `61`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Nota de crédito electrónica"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "nota_credito"
+</ParamField>
+
+### Nota de Débito (56)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `56`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Nota de débito electrónica"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "nota_debito"
+</ParamField>
+
+## Comparison: Credit vs Debit Notes
+
+| Feature | Nota de Crédito (61) | Nota de Débito (56) |
+|---------|---------------------|--------------------|
+| Purpose | Decrease amount owed | Increase amount owed |
+| Common Use | Returns, refunds, discounts | Additional charges, fees |
+| Effect on Balance | Credit to customer | Debit to customer |
+| References | Original invoice/receipt | Original invoice/receipt |
+
+## Related Document Types
+
+- **Factura Afecta (33)**: Original taxable invoice
+- **Factura Exenta (34)**: Original tax-exempt invoice
+- **Boleta Afecta (39)**: Original taxable receipt
+- **Boleta Exenta (41)**: Original tax-exempt receipt
+- **Factura Exportación (110)**: Original export invoice
+
+## Implementation
+
+All note types implement their respective interfaces:
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface NotaCreditoInterface extends DocumentInterface
+{
+    // Credit note specific methods
+}
+
+interface NotaDebitoInterface extends DocumentInterface
+{
+    // Debit note specific methods
+}
+
+interface NotaCreditoExportacionInterface extends DocumentInterface
+{
+    // Export credit note specific methods
+}
+
+interface NotaDebitoExportacionInterface extends DocumentInterface
+{
+    // Export debit note specific methods
+}
+```

@@ -1,0 +1,162 @@
+---
+title: 'Boleta (Codes 39 & 41)'
+description: 'Electronic receipts - Sales receipts for B2C transactions in Chile, both taxable and tax-exempt'
+---
+
+## Overview
+
+**Boletas** are electronic receipts used for retail sales and B2C (Business to Consumer) transactions in Chile. LibreDTE Core supports two types of boletas:
+
+- **Boleta Afecta (Code 39)**: For taxable retail sales
+- **Boleta Exenta (Code 41)**: For tax-exempt retail sales
+
+## Boleta Afecta (Code 39)
+
+<Note>
+**Official Name:** Boleta electrónica  
+**Document Code:** 39  
+**Enum Constant:** `CodigoDocumento::BOLETA_AFECTA`  
+**Interface:** `BoletaAfectaInterface`
+</Note>
+
+### When to Use Boleta Afecta
+
+Use a Boleta Afecta when:
+
+- Making retail sales to consumers
+- The transaction is subject to VAT
+- The customer does not require a tax-deductible invoice (Factura)
+- Point-of-sale transactions with final consumers
+
+### Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\BoletaAfectaInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::BOLETA_AFECTA;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 39
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Boleta electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Boleta"
+
+// Get alias
+$alias = $documentType->getAlias(); // "boleta_afecta"
+
+// Get interface class
+$interface = $documentType->getInterface(); // BoletaAfectaInterface::class
+```
+
+## Boleta Exenta (Code 41)
+
+<Note>
+**Official Name:** Boleta no afecta o exenta electrónica  
+**Document Code:** 41  
+**Enum Constant:** `CodigoDocumento::BOLETA_EXENTA`  
+**Interface:** `BoletaExentaInterface`
+</Note>
+
+### When to Use Boleta Exenta
+
+Use a Boleta Exenta when:
+
+- Making retail sales to consumers
+- The transaction is exempt from VAT
+- Selling tax-exempt goods or services
+- The customer does not require a tax-deductible invoice
+
+### Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\BoletaExentaInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::BOLETA_EXENTA;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 41
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Boleta no afecta o exenta electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Boleta no afecta o exenta"
+
+// Get alias
+$alias = $documentType->getAlias(); // "boleta_exenta"
+
+// Get interface class
+$interface = $documentType->getInterface(); // BoletaExentaInterface::class
+```
+
+## Document Properties
+
+### Boleta Afecta (39)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `39`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Boleta electrónica"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "boleta_afecta"
+</ParamField>
+
+### Boleta Exenta (41)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `41`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Boleta no afecta o exenta electrónica"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "boleta_exenta"
+</ParamField>
+
+## Comparison: Boleta vs Factura
+
+| Feature | Boleta (39/41) | Factura (33/34) |
+|---------|----------------|------------------|
+| Target | Consumers (B2C) | Businesses (B2B) |
+| Tax Deductible | No | Yes |
+| Buyer Information | Optional/Minimal | Required |
+| Use Case | Retail sales | Commercial invoices |
+| VAT Detail | Included in total | Itemized separately |
+
+## Related Document Types
+
+- **Factura Afecta (33)**: For B2B taxable invoices
+- **Factura Exenta (34)**: For B2B tax-exempt invoices
+- **Nota de Crédito (61)**: To reverse or correct a boleta
+- **Nota de Débito (56)**: To add charges to a boleta
+
+## Implementation
+
+Both boleta types implement their respective interfaces:
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface BoletaAfectaInterface extends DocumentInterface
+{
+    // Boleta Afecta specific methods
+}
+
+interface BoletaExentaInterface extends DocumentInterface
+{
+    // Boleta Exenta specific methods
+}
+```

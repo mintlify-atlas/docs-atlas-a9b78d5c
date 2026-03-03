@@ -1,0 +1,318 @@
+---
+title: Frequently Asked Questions
+description: Common questions and answers about LibreDTE Core library.
+---
+
+## General Questions
+
+<Accordion title="What is LibreDTE Core?">
+  LibreDTE Core is a PHP library for electronic invoicing in Chile. It provides a complete implementation of SII (Servicio de Impuestos Internos) electronic document standards, including:
+
+  - Electronic invoice generation (DTE)
+  - Digital signature and stamping (timbraje)
+  - SII webservice integration
+  - Document validation and rendering
+  - CAF (folio) management
+  - Exchange document handling
+
+  The library is designed for developers who need to integrate Chilean electronic invoicing into their applications.
+</Accordion>
+
+<Accordion title="What license does LibreDTE Core use?">
+  LibreDTE Core is licensed under **AGPL-3.0+** (GNU Affero General Public License version 3 or later).
+
+  This means:
+  - You can use, study, modify, and distribute the library
+  - If you use LibreDTE Core in your software, you must release your software's source code under AGPL
+  - If you modify LibreDTE Core, you must release your changes under AGPL
+  - You must publicly reference the original LibreDTE project and author
+
+  **Important:** You must read and accept the complete [terms and conditions](https://core.libredte.cl/legal) before using the library.
+</Accordion>
+
+<Accordion title="Can I use LibreDTE Core in a commercial project?">
+  Yes, but with conditions:
+
+  1. Your entire application must be released as open source under AGPL license
+  2. You must make your source code publicly available
+  3. You must credit LibreDTE in your application
+  4. You must comply with all [terms and conditions](https://core.libredte.cl/legal)
+
+  There is **no commercial license** available. If you cannot comply with the AGPL license terms, you cannot use LibreDTE Core.
+</Accordion>
+
+<Accordion title="What PHP version do I need?">
+  LibreDTE Core requires **PHP 8.5 or higher**.
+
+  Required PHP extensions:
+  - ext-curl
+  - ext-json
+  - ext-mbstring
+  - ext-openssl
+  - ext-soap
+
+  See the [Migration Guide](/resources/migration-guide) for complete system requirements.
+</Accordion>
+
+## Technical Questions
+
+<Accordion title="How do I generate electronic invoices?">
+  Basic invoice generation involves:
+
+  1. Initialize the application
+  2. Create emisor and receptor
+  3. Load CAF for the document type
+  4. Load digital certificate
+  5. Build the document with data
+  6. Generate and validate XML
+  7. Render to PDF if needed
+
+  See the [Examples](/resources/examples#creating-electronic-documents) page for complete code samples.
+</Accordion>
+
+<Accordion title="What is a CAF and where do I get one?">
+  CAF (Código de Autorización de Folios) is an authorization file from SII that contains a range of folio numbers you can use for electronic documents.
+
+  **How to get a CAF:**
+  1. Log in to SII website with your digital certificate
+  2. Go to "Facturación Electrónica" section
+  3. Request a folio range for your document type
+  4. Download the CAF XML file
+
+  **For development/testing:**
+  You can generate fake CAFs using the library (not valid for production):
+  
+  ```php
+  $cafBag = $cafFaker->create($emisor, 33, 1, 100);
+  ```
+
+  See [CAF Examples](/resources/examples#working-with-caf-folios) for details.
+</Accordion>
+
+<Accordion title="How do I authenticate with SII?">
+  Authentication requires a valid digital certificate:
+
+  ```php
+  use Derafu\Certificate\Service\CertificateLoader;
+  use libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest;
+
+  // Load certificate
+  $certificateLoader = new CertificateLoader();
+  $certificate = $certificateLoader->loadFromFile(
+      '/path/to/certificate.pfx',
+      'password'
+  );
+
+  // Get token
+  $token = $siiLazyWorker->authenticate(new SiiRequest($certificate));
+  ```
+
+  See [SII Integration Examples](/resources/examples#sii-integration) for more details.
+</Accordion>
+
+<Accordion title="What document types are supported?">
+  LibreDTE Core supports all standard Chilean electronic document types:
+
+  **Sales Documents:**
+  - 33: Factura Electrónica
+  - 34: Factura No Afecta o Exenta Electrónica
+  - 39: Boleta Electrónica
+  - 41: Boleta Exenta Electrónica
+
+  **Adjustments:**
+  - 56: Nota de Débito Electrónica
+  - 61: Nota de Crédito Electrónica
+
+  **Other:**
+  - 43: Liquidación Factura Electrónica
+  - 46: Factura de Compra Electrónica
+  - 52: Guía de Despacho Electrónica
+
+  **Export:**
+  - 110: Factura de Exportación Electrónica
+  - 111: Nota de Débito de Exportación Electrónica
+  - 112: Nota de Crédito de Exportación Electrónica
+</Accordion>
+
+<Accordion title="Can I test without sending to SII?">
+  Yes! The library provides testing capabilities:
+
+  1. **Fake CAFs:** Generate test folios without SII
+     ```php
+     $cafBag = $cafFaker->create($emisor, 33, 1);
+     ```
+
+  2. **Fake Certificates:** Create test certificates
+     ```php
+     $certificate = $certificateFaker->createFake(id: '76192083-9');
+     ```
+
+  3. **Certification Environment:** Test with real SII certification environment
+     ```php
+     use libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente;
+     
+     // Use certification environment
+     $ambiente = SiiAmbiente::CERTIFICACION;
+     ```
+
+  4. **XML Validation:** Validate without sending
+     ```php
+     $validator->validateSchema($xml);
+     $validator->validateSignature($xml);
+     ```
+</Accordion>
+
+<Accordion title="How do I render documents to PDF?">
+  LibreDTE Core includes built-in PDF rendering:
+
+  ```php
+  // Set PDF format option
+  $bag->getOptions()->set('renderer.format', 'pdf');
+
+  // Render to PDF
+  $pdf = $renderer->render($bag);
+
+  // Save to file
+  file_put_contents('/path/to/invoice.pdf', $pdf);
+  ```
+
+  The library uses mPDF or TCPDF for PDF generation. See [Examples](/resources/examples#render-document-to-html-or-pdf) for details.
+</Accordion>
+
+<Accordion title="What's the difference between certification and production environments?">
+  **Certification Environment (`SiiAmbiente::CERTIFICACION`):**
+  - For testing and development
+  - Documents are not legally valid
+  - Free to use
+  - Use to test integration before going live
+
+  **Production Environment (`SiiAmbiente::PRODUCCION`):**
+  - For real invoicing
+  - Documents are legally valid
+  - Used for actual business transactions
+  - Requires authorization from SII
+
+  Always test thoroughly in certification before using production.
+</Accordion>
+
+## Development Questions
+
+<Accordion title="How do I run the test suite?">
+  LibreDTE Core includes comprehensive tests:
+
+  ```bash
+  # All tests
+  composer tests
+
+  # Unit tests only
+  composer tests-unit
+
+  # Functional tests
+  composer tests-functional
+
+  # Integration tests (requires SII credentials)
+  composer tests-integration
+  ```
+
+  For integration tests, set environment variables:
+  ```bash
+  export LIBREDTE_CERTIFICATE_FILE=/path/to/cert.pfx
+  export LIBREDTE_CERTIFICATE_PASS=password
+  ```
+</Accordion>
+
+<Accordion title="How can I contribute to LibreDTE Core?">
+  Contributions are welcome! See the [Contributing Guide](/resources/contributing) for:
+
+  - Code style guidelines
+  - How to submit pull requests
+  - Testing requirements
+  - Licensing requirements
+
+  All contributions must comply with AGPL-3.0+ license.
+</Accordion>
+
+<Accordion title="Where can I find code examples?">
+  Check these resources:
+
+  1. [Examples Page](/resources/examples) - Common use cases with code
+  2. [API Reference](/api/billing/overview) - Detailed method documentation
+  3. [Test Files](https://github.com/libredte/libredte-lib-core/tree/master/tests) - Real test cases
+  4. GitHub repository - Working implementation examples
+</Accordion>
+
+<Accordion title="How do I handle errors and exceptions?">
+  LibreDTE Core uses typed exceptions:
+
+  ```php
+  use libredte\lib\Core\Package\Billing\Exception\BillingException;
+  use Derafu\Certificate\Exception\CertificateException;
+
+  try {
+      // Your code
+      $builder->build($bag);
+  } catch (BillingException $e) {
+      // Handle billing errors
+      echo "Billing error: " . $e->getMessage();
+  } catch (CertificateException $e) {
+      // Handle certificate errors
+      echo "Certificate error: " . $e->getMessage();
+  } catch (\Exception $e) {
+      // Handle other errors
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+  See [Troubleshooting](/resources/troubleshooting) for common error solutions.
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Why is my certificate not loading?">
+  Common issues:
+
+  1. **Wrong password** - Verify certificate password
+  2. **File permissions** - Ensure PHP can read the file
+  3. **File path** - Use absolute paths
+  4. **OpenSSL extension** - Verify ext-openssl is installed
+
+  See [Certificate Troubleshooting](/resources/troubleshooting#certificate-issues) for detailed solutions.
+</Accordion>
+
+<Accordion title="Why is CAF validation failing?">
+  Check these:
+
+  1. **RUT mismatch** - CAF RUT must match emisor RUT
+  2. **Folio range** - Requested folio must be within CAF range
+  3. **Document type** - CAF type must match document type
+  4. **File corruption** - Re-download CAF from SII
+
+  See [CAF Troubleshooting](/resources/troubleshooting#caf-folio-issues) for more details.
+</Accordion>
+
+<Accordion title="Why can't I connect to SII?">
+  Possible causes:
+
+  1. **Network issues** - Check firewall and internet connection
+  2. **Certificate problems** - Verify certificate is valid
+  3. **SII maintenance** - Check SII website status
+  4. **SOAP extension** - Ensure ext-soap is installed
+
+  See [SII Integration Troubleshooting](/resources/troubleshooting#sii-integration-issues) for solutions.
+</Accordion>
+
+## Additional Resources
+
+<Accordion title="Where can I get more help?">
+  - [Troubleshooting Guide](/resources/troubleshooting) - Common issues and solutions
+  - [GitHub Issues](https://github.com/libredte/libredte-lib-core/issues) - Report bugs or ask questions
+  - [LibreDTE Website](https://www.libredte.cl) - Project information
+  - [SII Documentation](https://www.sii.cl) - Official electronic invoicing documentation
+</Accordion>
+
+<Accordion title="How do I stay updated?">
+  - Watch the [GitHub repository](https://github.com/libredte/libredte-lib-core)
+  - Check [release notes](https://github.com/libredte/libredte-lib-core/releases)
+  - Follow LibreDTE on social media
+  - Subscribe to project announcements
+</Accordion>

@@ -1,0 +1,420 @@
+---
+title: Sales and Purchase Books
+description: Generate and manage sales and purchase books (Libro de Ventas y Compras) for SII reporting
+---
+
+The Sales and Purchase Books (Libro de Ventas y Compras) are monthly reports required by Chile's SII that summarize all electronic documents issued and received during a period.
+
+## Overview
+
+The `BookComponent` handles the generation and management of:
+
+- **Sales Book (Libro de Ventas)**: Summary of all documents issued (invoices, receipts, credit/debit notes)
+- **Purchase Book (Libro de Compras)**: Summary of all documents received from suppliers
+
+These books must be submitted to SII monthly and include tax calculations, document totals, and statistical information.
+
+## Accessing the Book Component
+
+```php
+$bookComponent = $app->getPackage('billing')
+    ->getComponent('book');
+```
+
+<Note>
+  The BookComponent is currently under development. Full functionality will be available in future releases. This guide covers the planned architecture and usage patterns.
+</Note>
+
+## Sales Book (Libro de Ventas)
+
+The sales book summarizes all documents you've issued to customers:
+
+### Documents Included
+
+<CardGroup cols={2}>
+  <Card title="Invoices" icon="file-invoice">
+    - Factura Afecta (33)
+    - Factura Exenta (34)
+    - Factura de Exportación (110)
+  </Card>
+  
+  <Card title="Receipts" icon="receipt">
+    - Boleta Afecta (39)
+    - Boleta Exenta (41)
+  </Card>
+  
+  <Card title="Credit Notes" icon="file-minus">
+    - Nota de Crédito (61)
+    - Nota de Crédito Exportación (112)
+  </Card>
+  
+  <Card title="Debit Notes" icon="file-plus">
+    - Nota de Débito (56)
+    - Nota de Débito Exportación (111)
+  </Card>
+</CardGroup>
+
+### Expected Usage Pattern
+
+```php
+// Planned API for generating sales book
+$salesBookWorker = $bookComponent->getSalesBookWorker();
+
+// Generate sales book for a period
+$salesBook = $salesBookWorker->generate(
+    company: '12345678-5',
+    period: '2025-01',  // Year-Month format
+    documents: $issuedDocuments,  // Array of DocumentBag or Document entities
+    options: [
+        'include_receipts' => true,
+        'include_export' => true,
+    ]
+);
+
+// Export to XML for SII submission
+$xmlContent = $salesBook->toXml();
+file_put_contents('libro_ventas_202501.xml', $xmlContent);
+
+// Get summary data
+$summary = $salesBook->getSummary();
+echo "Total Sales: " . $summary['total_sales'];
+echo "Total IVA: " . $summary['total_iva'];
+```
+
+## Purchase Book (Libro de Compras)
+
+The purchase book summarizes all documents received from suppliers:
+
+### Expected Usage Pattern
+
+```php
+// Planned API for generating purchase book
+$purchaseBookWorker = $bookComponent->getPurchaseBookWorker();
+
+// Generate purchase book for a period
+$purchaseBook = $purchaseBookWorker->generate(
+    company: '12345678-5',
+    period: '2025-01',
+    documents: $receivedDocuments,  // Supplier invoices
+    options: [
+        'include_imports' => true,
+    ]
+);
+
+// Export to XML
+$xmlContent = $purchaseBook->toXml();
+file_put_contents('libro_compras_202501.xml', $xmlContent);
+
+// Get summary
+$summary = $purchaseBook->getSummary();
+echo "Total Purchases: " . $summary['total_purchases'];
+echo "Recoverable IVA: " . $summary['recoverable_iva'];
+```
+
+## Book Structure
+
+Both sales and purchase books follow a similar structure:
+
+<Steps>
+  <Step title="Identification (Caratula)">
+    Book header with company information, period, and summary totals.
+    
+    ```php
+    [
+        'RutEmisorLibro' => '12345678-5',
+        'RazonSocial' => 'Mi Empresa S.A.',
+        'PeriodoTributario' => '2025-01',
+        'FchResol' => '2014-01-01',
+        'NroResol' => 80,
+        'TipoLibro' => 'MENSUAL',
+        'TipoEnvio' => 'TOTAL',
+        // Summary totals
+        'TotalesLibro' => [
+            'TotMntNeto' => 10000000,
+            'TotMntIVA' => 1900000,
+            'TotMntTotal' => 11900000,
+        ],
+    ]
+    ```
+  </Step>
+
+  <Step title="Document Details (Detalle)">
+    Individual line items for each document in the period.
+    
+    ```php
+    [
+        [
+            'TpoDoc' => 33,
+            'NroDoc' => 150,
+            'TasaImp' => 19,
+            'FchDoc' => '2025-01-15',
+            'RUTDoc' => '87654321-9',
+            'RznSoc' => 'Cliente S.A.',
+            'MntNeto' => 420168,
+            'MntIVA' => 79832,
+            'MntTotal' => 500000,
+        ],
+        // More documents...
+    ]
+    ```
+  </Step>
+
+  <Step title="Summary Sections">
+    Statistical summaries grouped by document type and tax rate.
+  </Step>
+</Steps>
+
+## Collecting Documents for Books
+
+Organize documents by period for book generation:
+
+```php
+// Example: Collect sales for January 2025
+class DocumentCollector
+{
+    private $documents = [];
+    
+    public function addDocument(DocumentInterface $document)
+    {
+        $this->documents[] = $document;
+    }
+    
+    public function getDocumentsByPeriod(string $period): array
+    {
+        // Filter documents by period (YYYY-MM)
+        return array_filter($this->documents, function($doc) use ($period) {
+            $docDate = $doc->getFechaEmision();
+            return substr($docDate, 0, 7) === $period;
+        });
+    }
+    
+    public function getSalesSummary(string $period): array
+    {
+        $docs = $this->getDocumentsByPeriod($period);
+        
+        $summary = [
+            'total_documents' => count($docs),
+            'total_net' => 0,
+            'total_iva' => 0,
+            'total_amount' => 0,
+        ];
+        
+        foreach ($docs as $doc) {
+            $summary['total_net'] += $doc->getMontoNeto();
+            $summary['total_iva'] += $doc->getIVA();
+            $summary['total_amount'] += $doc->getMontoTotal();
+        }
+        
+        return $summary;
+    }
+}
+
+// Usage
+$collector = new DocumentCollector();
+
+// Add documents as you create them throughout the month
+$bag = $documentComponent->bill($data, $caf, $certificate);
+$collector->addDocument($bag->getDocument());
+
+// At month end, generate summary
+$summary = $collector->getSalesSummary('2025-01');
+print_r($summary);
+```
+
+## Monthly Workflow
+
+<Steps>
+  <Step title="Throughout the Month">
+    Create and store all documents:
+    
+    ```php
+    // For each sale/purchase
+    $bag = $documentComponent->bill($data, $caf, $certificate);
+    $document = $bag->getDocument();
+    
+    // Store document
+    $db->saveDocument([
+        'folio' => $document->getFolio(),
+        'type' => $document->getCodigo(),
+        'date' => $document->getFechaEmision(),
+        'total' => $document->getMontoTotal(),
+        'xml' => $document->getXml(),
+        'period' => date('Y-m', strtotime($document->getFechaEmision())),
+    ]);
+    ```
+  </Step>
+
+  <Step title="End of Month">
+    Retrieve all documents for the period:
+    
+    ```php
+    $period = '2025-01';
+    $documents = $db->getDocumentsByPeriod($period);
+    ```
+  </Step>
+
+  <Step title="Generate Books">
+    Create sales and purchase books:
+    
+    ```php
+    // Sales book from issued documents
+    $salesDocs = array_filter($documents, fn($d) => $d['direction'] === 'issued');
+    $salesBook = $salesBookWorker->generate('12345678-5', $period, $salesDocs);
+    
+    // Purchase book from received documents
+    $purchaseDocs = array_filter($documents, fn($d) => $d['direction'] === 'received');
+    $purchaseBook = $purchaseBookWorker->generate('12345678-5', $period, $purchaseDocs);
+    ```
+  </Step>
+
+  <Step title="Submit to SII">
+    Send books to SII:
+    
+    ```php
+    // Send sales book
+    $salesXml = $salesBook->toXml();
+    $trackId1 = $siiWorker->sendXmlDocument($request, $salesXml, $company);
+    
+    // Send purchase book
+    $purchaseXml = $purchaseBook->toXml();
+    $trackId2 = $siiWorker->sendXmlDocument($request, $purchaseXml, $company);
+    
+    // Check status
+    $status1 = $siiWorker->checkXmlDocumentSentStatus($request, $trackId1, $company);
+    $status2 = $siiWorker->checkXmlDocumentSentStatus($request, $trackId2, $company);
+    ```
+  </Step>
+</Steps>
+
+## Book Validation
+
+Validate books before submission:
+
+```php
+// Expected validation API
+$validator = $bookComponent->getBookValidatorWorker();
+
+try {
+    // Validate sales book
+    $validator->validate($salesBook);
+    echo "Sales book is valid\n";
+    
+    // Validate against expected totals
+    $expectedTotal = $db->getSumOfSales($period);
+    $bookTotal = $salesBook->getTotalMonto();
+    
+    if (abs($expectedTotal - $bookTotal) > 0.01) {
+        throw new Exception("Book total mismatch: expected {$expectedTotal}, got {$bookTotal}");
+    }
+    
+} catch (Exception $e) {
+    echo "Validation error: " . $e->getMessage();
+}
+```
+
+## Handling Corrections
+
+If you need to correct a submitted book:
+
+```php
+// Generate replacement book
+$salesBook = $salesBookWorker->generate(
+    company: '12345678-5',
+    period: '2025-01',
+    documents: $correctedDocuments,
+    options: [
+        'tipo_envio' => 'RECTIFICA',  // Correction type
+        'folio_notificacion' => 123,  // Previous submission folio
+    ]
+);
+
+// Submit correction
+$xmlContent = $salesBook->toXml();
+$trackId = $siiWorker->sendXmlDocument($request, $xmlContent, $company);
+```
+
+## Database Schema Example
+
+Store documents for book generation:
+
+```sql
+CREATE TABLE documents (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    company_rut VARCHAR(12) NOT NULL,
+    direction ENUM('issued', 'received') NOT NULL,
+    document_type INT NOT NULL,
+    folio INT NOT NULL,
+    issue_date DATE NOT NULL,
+    period VARCHAR(7) NOT NULL,  -- YYYY-MM format
+    recipient_rut VARCHAR(12),
+    net_amount DECIMAL(15,2),
+    iva_amount DECIMAL(15,2),
+    total_amount DECIMAL(15,2),
+    xml_content TEXT,
+    ted_stamp TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_period (company_rut, period, direction),
+    INDEX idx_date (issue_date),
+    UNIQUE KEY unique_doc (company_rut, document_type, folio)
+);
+
+CREATE TABLE book_submissions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    company_rut VARCHAR(12) NOT NULL,
+    book_type ENUM('sales', 'purchases') NOT NULL,
+    period VARCHAR(7) NOT NULL,
+    track_id INT,
+    status VARCHAR(50),
+    xml_content TEXT,
+    submitted_at TIMESTAMP,
+    
+    UNIQUE KEY unique_submission (company_rut, book_type, period)
+);
+```
+
+## Current Implementation Status
+
+The `BookComponent` is currently a placeholder:
+
+```php
+// BookComponent.php:37-53
+class BookComponent extends AbstractComponent implements BookComponentInterface
+{
+    public function __construct()
+    {
+        // TODO: Agregar workers para inyección de dependencias.
+    }
+
+    public function getWorkers(): array
+    {
+        return [
+            // TODO: Agregar workers.
+        ];
+    }
+}
+```
+
+<Warning>
+  Full book generation functionality is under development. For now, you'll need to implement custom book generation logic or use the LibreDTE web platform for book submission.
+</Warning>
+
+## Temporary Solutions
+
+While the BookComponent is being developed, consider:
+
+1. **Manual aggregation**: Collect document totals in your database and generate books using the SII's provided tools
+2. **Third-party services**: Use LibreDTE's web platform (https://libredte.cl) for book generation
+3. **Custom implementation**: Build book generation using the document data you've stored
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Documents" icon="file-invoice" href="/guides/creating-documents">
+    Learn how to create the documents that will be included in books
+  </Card>
+  
+  <Card title="SII Integration" icon="cloud" href="/guides/sii-integration">
+    Understand how to submit books to SII when ready
+  </Card>
+</CardGroup>

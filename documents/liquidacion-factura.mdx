@@ -1,0 +1,173 @@
+---
+title: 'Liquidación Factura (Code 43)'
+description: 'Electronic invoice settlement - Special document type for purchases from non-invoice issuers in Chile'
+---
+
+## Overview
+
+The **Liquidación Factura** (Code 43) is a special type of electronic document used when purchasing goods or services from individuals or entities that are not required to issue invoices. The buyer issues this document to formalize the transaction for tax purposes.
+
+<Note>
+**Official Name:** Liquidación factura electrónica  
+**Document Code:** 43  
+**Enum Constant:** `CodigoDocumento::LIQUIDACION_FACTURA`  
+**Interface:** `LiquidacionFacturaInterface`
+</Note>
+
+## When to Use
+
+Use a Liquidación Factura when:
+
+- Purchasing from individuals who don't issue invoices (e.g., farmers, small producers)
+- Buying agricultural products directly from producers
+- Acquiring goods from small-scale vendors not registered for invoicing
+- The seller is exempt from issuing tax documents
+- You need to document the purchase for tax and accounting purposes
+- Reverse invoicing situations where the buyer creates the tax document
+
+## Key Characteristics
+
+- **Buyer Issues**: Unlike normal invoices, the buyer (not seller) issues this document
+- **Reverse Invoicing**: The purchaser creates the tax document on behalf of the seller
+- **Tax Compliance**: Allows businesses to properly document purchases from non-issuers
+- **Legal Validity**: Legally recognized by SII for tax deduction purposes
+- **Seller Information**: Must include details about the seller even though they didn't issue it
+
+## Document Properties
+
+### Basic Information
+
+<ParamField path="codigo" type="int" required>
+  Document code: `43`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Liquidación factura electrónica"
+</ParamField>
+
+<ParamField path="nombreCorto" type="string" required>
+  Short name: "Liquidación factura"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "liquidacion_factura"
+</ParamField>
+
+## Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\LiquidacionFacturaInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::LIQUIDACION_FACTURA;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 43
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Liquidación factura electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Liquidación factura"
+
+// Get alias
+$alias = $documentType->getAlias(); // "liquidacion_factura"
+
+// Get interface class
+$interface = $documentType->getInterface(); // LiquidacionFacturaInterface::class
+```
+
+## Common Use Cases
+
+### 1. Agricultural Purchases
+
+A restaurant buying produce directly from a local farmer:
+
+```php
+$documentType = CodigoDocumento::LIQUIDACION_FACTURA;
+// Restaurant issues liquidación factura for produce purchase
+// Seller (farmer) doesn't issue invoice
+// Restaurant can deduct this purchase for tax purposes
+```
+
+### 2. Artisan Goods
+
+A retail store purchasing handmade products from individual artisans:
+
+```php
+$documentType = CodigoDocumento::LIQUIDACION_FACTURA;
+// Store issues liquidación factura for handicrafts
+// Artisan may not be registered to issue invoices
+// Purchase is properly documented for inventory and taxes
+```
+
+### 3. Small-Scale Suppliers
+
+Company buying materials from small, unregistered suppliers:
+
+```php
+$documentType = CodigoDocumento::LIQUIDACION_FACTURA;
+// Company issues liquidación factura
+// Ensures compliance even when supplier can't invoice
+```
+
+## Comparison with Other Documents
+
+| Feature | Liquidación Factura (43) | Factura Afecta (33) | Factura Compra (46) |
+|---------|--------------------------|---------------------|---------------------|
+| Issuer | Buyer | Seller | Buyer |
+| Purpose | Purchase from non-issuer | Standard sale | Purchase invoice |
+| Common Use | Informal suppliers | B2B sales | Special purchases |
+| Document Code | 43 | 33 | 46 |
+
+## Important Considerations
+
+<Note>
+**Buyer Responsibility**: When issuing a Liquidación Factura, the buyer assumes responsibility for accurate tax reporting and seller information.
+</Note>
+
+<Note>
+**Seller Consent**: While not always legally required, it's good practice to inform and get consent from sellers when issuing a Liquidación Factura on their behalf.
+</Note>
+
+<Note>
+**Tax Withholding**: Depending on the transaction, the buyer may need to withhold taxes when using Liquidación Factura. Consult with tax advisors for specific situations.
+</Note>
+
+## Workflow Example
+
+1. **Purchase Agreement**: Negotiate purchase with non-invoice issuer (e.g., local farmer)
+2. **Receive Goods**: Accept delivery of goods/services
+3. **Issue Liquidación**: Buyer creates Liquidación Factura (43) with seller details
+4. **Payment**: Pay seller based on agreement
+5. **Tax Reporting**: Use Liquidación Factura for tax deductions and accounting
+
+## Related Document Types
+
+- **Factura Compra (46)**: Electronic purchase invoice (different use case)
+- **Factura Afecta (33)**: Standard invoice when supplier can issue
+- **Factura Exenta (34)**: Tax-exempt invoice alternative
+- **Nota de Crédito (61)**: To adjust a Liquidación if needed
+- **Nota de Débito (56)**: To add charges to a Liquidación
+
+## Implementation
+
+The Liquidación Factura implements the `LiquidacionFacturaInterface`, which extends the base `DocumentInterface`.
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface LiquidacionFacturaInterface extends DocumentInterface
+{
+    // Liquidación Factura specific methods and properties
+}
+```
+
+## Best Practices
+
+1. **Verify Seller Status**: Confirm that the seller truly cannot issue invoices before using Liquidación Factura
+2. **Accurate Information**: Ensure all seller information is accurate and complete
+3. **Proper Documentation**: Keep records of the purchase agreement and any supporting documents
+4. **Tax Compliance**: Understand your tax obligations when issuing Liquidación Facturas
+5. **Regular Reconciliation**: Regularly reconcile these documents with your accounting records

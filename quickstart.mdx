@@ -1,80 +1,397 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Create your first electronic invoice with LibreDTE Core in just a few minutes
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through creating your first electronic invoice (Factura Afecta) using LibreDTE Core.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This example demonstrates basic usage. In production, you'll need valid SII certificates, authorized folios, and proper configuration.
 </Note>
+
+## Basic Setup
+
+<Steps>
+  <Step title="Initialize the Application">
+    First, create an instance of the LibreDTE Core application:
+    
+    ```php
+    <?php
+    
+    require 'vendor/autoload.php';
+    
+    use libredte\lib\Core\Application;
+    
+    // Initialize in development mode
+    $app = Application::getInstance('dev', true);
+    ```
+  </Step>
+  
+  <Step title="Access the Billing Package">
+    Get the billing package which contains all document-related functionality:
+    
+    ```php
+    // Get the billing package service
+    $billing = $app->getService('libredte.lib.billing');
+    
+    // Access components
+    $documentComponent = $billing->getDocumentComponent();
+    $tradingPartiesComponent = $billing->getTradingPartiesComponent();
+    $integrationComponent = $billing->getIntegrationComponent();
+    ```
+  </Step>
+</Steps>
+
+## Create Your First Invoice
+
+Here's a complete example of creating an electronic invoice:
+
+<CodeGroup>
+
+```php Complete Example
+<?php
+
+require 'vendor/autoload.php';
+
+use libredte\lib\Core\Application;
+
+// Initialize application
+$app = Application::getInstance('dev', true);
+
+// Get billing package
+$billing = $app->getService('libredte.lib.billing');
+
+// Get components
+$tradingParties = $billing->getTradingPartiesComponent();
+$documentComponent = $billing->getDocumentComponent();
+
+// Create issuer (Emisor)
+$emisorFactory = $tradingParties->getEmisorFactory();
+$emisor = $emisorFactory->create([
+    'rut' => '76192083-9',
+    'razon_social' => 'SASCO SpA',
+    'giro' => 'Servicios de Tecnología',
+    'actividad_economica' => '620200',
+    'direccion' => 'Santa Cruz 123',
+    'comuna' => 'Santiago',
+]);
+
+// Create recipient (Receptor)
+$receptorFactory = $tradingParties->getReceptorFactory();
+$receptor = $receptorFactory->create([
+    'rut' => '66666666-6',
+    'razon_social' => 'Empresa Demo Ltda',
+    'giro' => 'Comercio',
+    'direccion' => 'Providencia 456',
+    'comuna' => 'Providencia',
+]);
+
+// Create invoice document
+$document = $documentComponent->createDocument([
+    'tipo_documento' => 33, // Factura Afecta
+    'folio' => 1,
+    'fecha_emision' => date('Y-m-d'),
+    'emisor' => $emisor,
+    'receptor' => $receptor,
+    'items' => [
+        [
+            'nombre' => 'Servicio de Desarrollo',
+            'cantidad' => 1,
+            'precio' => 100000,
+        ],
+        [
+            'nombre' => 'Servicio de Consultoría',
+            'cantidad' => 5,
+            'precio' => 50000,
+        ],
+    ],
+]);
+
+echo "Invoice created successfully!\n";
+echo "Document Type: Factura Afecta (33)\n";
+echo "Folio: {$document->getFolio()}\n";
+echo "Total: {$document->getTotal()}\n";
+```
+
+```php Using Global Helper
+<?php
+
+require 'vendor/autoload.php';
+require 'vendor/libredte/libredte-lib-core/app/bootstrap.php';
+
+// Use global helper function
+$app = libredte_lib('dev', true);
+
+// Get package registry
+$registry = $app->getPackageRegistry();
+
+// Get billing package
+$billing = $registry->get('billing');
+
+// Continue with invoice creation...
+$tradingParties = $billing->getTradingPartiesComponent();
+// ... rest of the code
+```
+
+</CodeGroup>
+
+## Understanding Document Types
+
+LibreDTE Core supports all Chilean tax document types:
+
+<CardGroup cols={2}>
+  <Card title="Facturas" icon="file-invoice">
+    - **33**: Factura Afecta (with VAT)
+    - **34**: Factura Exenta (exempt)
+    - **110**: Factura de Exportación
+    - **46**: Factura de Compra
+  </Card>
+  
+  <Card title="Boletas" icon="receipt">
+    - **39**: Boleta Afecta (with VAT)
+    - **41**: Boleta Exenta
+  </Card>
+  
+  <Card title="Notas" icon="file-pen">
+    - **56**: Nota de Débito
+    - **61**: Nota de Crédito
+    - **111**: Nota de Crédito Exportación
+    - **112**: Nota de Débito Exportación
+  </Card>
+  
+  <Card title="Others" icon="file-lines">
+    - **52**: Guía de Despacho
+    - **43**: Liquidación Factura
+  </Card>
+</CardGroup>
+
+## Working with Components
+
+The Billing Package provides several components for different operations:
+
+### Trading Parties Component
+
+Manage issuers and recipients:
+
+```php
+// Get the trading parties component
+$tradingParties = $billing->getTradingPartiesComponent();
+
+// Create an issuer with authorization
+$emisor = $tradingParties->getEmisorFactory()->create([
+    'rut' => '76192083-9',
+    'razon_social' => 'Mi Empresa',
+]);
+
+// Set SII authorization
+$autorizacion = $tradingParties->createAutorizacionDte([
+    'ambiente' => 'certificacion', // or 'produccion'
+    'fecha_autorizacion' => '2024-01-01',
+]);
+$emisor->setAutorizacionDte($autorizacion);
+```
+
+### Document Component
+
+Create, validate, and manage documents:
+
+```php
+// Get the document component  
+$documentComponent = $billing->getDocumentComponent();
+
+// Validate a document before signing
+$validator = $documentComponent->getValidator();
+$errors = $validator->validate($document);
+
+if (empty($errors)) {
+    echo "Document is valid!\n";
+} else {
+    foreach ($errors as $error) {
+        echo "Error: {$error}\n";
+    }
+}
+
+// Render document as PDF
+$renderer = $documentComponent->getRenderer();
+$pdf = $renderer->renderPdf($document);
+file_put_contents('factura.pdf', $pdf);
+```
+
+### Integration Component
+
+Interact with SII webservices:
+
+```php
+// Get the integration component
+$integration = $billing->getIntegrationComponent();
+
+// Get SII lazy worker for operations
+$siiWorker = $integration->getSiiLazyWorker();
+
+// Authenticate with SII
+$authResult = $siiWorker->authenticate($certificate, $ambiente);
+
+// Send document to SII
+$sendResult = $siiWorker->sendXmlDocument($documentXml, $ambiente);
+
+// Check document status
+$status = $siiWorker->checkXmlDocumentSentStatus(
+    $emisorRut,
+    $documentType,
+    $folio,
+    $ambiente
+);
+```
+
+## Environment Configuration
+
+LibreDTE Core supports multiple environments:
+
+<CodeGroup>
+
+```php Development
+// Development environment with debug
+$app = Application::getInstance('dev', true);
+
+// Use SII certification environment
+$ambiente = 'certificacion';
+```
+
+```php Production
+// Production environment
+$app = Application::getInstance('prod', false);
+
+// Use SII production environment
+$ambiente = 'produccion';
+```
+
+</CodeGroup>
+
+<Warning>
+  Always test your implementation in the SII certification environment (`certificacion`) before switching to production (`produccion`).
+</Warning>
+
+## Complete Workflow
+
+A typical electronic invoicing workflow:
+
+<Steps>
+  <Step title="Create Document">
+    Build the document with issuer, recipient, and line items
+    
+    ```php
+    $document = $documentComponent->createDocument($data);
+    ```
+  </Step>
+  
+  <Step title="Validate">
+    Validate the document before signing
+    
+    ```php
+    $errors = $validator->validate($document);
+    ```
+  </Step>
+  
+  <Step title="Sign">
+    Digitally sign the document with your certificate
+    
+    ```php
+    $signedXml = $signer->sign($document, $certificate);
+    ```
+  </Step>
+  
+  <Step title="Send to SII">
+    Submit the signed document to SII
+    
+    ```php
+    $result = $siiWorker->sendXmlDocument($signedXml, $ambiente);
+    ```
+  </Step>
+  
+  <Step title="Check Status">
+    Verify the document was accepted
+    
+    ```php
+    $status = $siiWorker->checkXmlDocumentSentStatus(
+        $rut, $tipo, $folio, $ambiente
+    );
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Document Types" icon="file-invoice" href="/documents/overview">
+    Learn about all supported document types
+  </Card>
+  
+  <Card title="SII Integration" icon="globe" href="/guides/sii-integration">
+    Deep dive into SII webservice integration
+  </Card>
+  
+  <Card title="Digital Signatures" icon="signature" href="/guides/digital-signatures">
+    Configure and use digital certificates
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/billing/overview">
+    Explore the complete API documentation
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+<AccordionGroup>
+  <Accordion title="Accessing Services via DI">
+    Instead of using singletons, inject services in your application:
+    
+    ```php
+    class InvoiceService
+    {
+        public function __construct(
+            private Application $app
+        ) {}
+        
+        public function createInvoice(array $data)
+        {
+            $billing = $this->app->getService('libredte.lib.billing');
+            // Create invoice...
+        }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Handling Errors">
+    Always wrap SII operations in try-catch blocks:
+    
+    ```php
+    use libredte\lib\Core\Package\Billing\Exception\BillingException;
+    
+    try {
+        $result = $siiWorker->sendXmlDocument($xml, $ambiente);
+    } catch (BillingException $e) {
+        error_log("SII Error: " . $e->getMessage());
+        // Handle error appropriately
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Batch Processing">
+    Process multiple documents efficiently:
+    
+    ```php
+    $documents = [];
+    
+    foreach ($invoices as $invoiceData) {
+        $doc = $documentComponent->createDocument($invoiceData);
+        $documents[] = $doc;
+    }
+    
+    // Process batch
+    $bookComponent = $billing->getBookComponent();
+    $book = $bookComponent->createSalesBook($documents);
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,164 @@
+---
+title: 'Guía de Despacho (Code 52)'
+description: 'Electronic delivery guide - Document for tracking goods in transit without invoicing in Chile'
+---
+
+## Overview
+
+The **Guía de Despacho** (Code 52) is an electronic delivery guide used to document the movement of goods from one location to another. This document serves as proof of delivery and can be issued separately from the invoice.
+
+<Note>
+**Official Name:** Guía de despacho electrónica  
+**Document Code:** 52  
+**Enum Constant:** `CodigoDocumento::GUIA_DESPACHO`  
+**Interface:** `GuiaDespachoInterface`
+</Note>
+
+## When to Use
+
+Use a Guía de Despacho when:
+
+- Shipping goods that will be invoiced later
+- Transferring goods between company locations (internal transfer)
+- Delivering goods on consignment
+- Sending samples or promotional items
+- Moving inventory without an immediate sale
+- Shipping goods for demonstration or testing
+- Required documentation for transport and logistics
+
+## Key Characteristics
+
+- **Non-invoicing Document**: A Guía de Despacho is NOT an invoice; it documents movement, not sale
+- **Later Invoicing**: Can be referenced later when issuing the corresponding invoice
+- **Transport Documentation**: Required for legal transport of goods
+- **Inventory Tracking**: Helps track goods in transit
+- **Multiple Uses**: Can cover sales, transfers, loans, consignments, etc.
+
+## Document Properties
+
+### Basic Information
+
+<ParamField path="codigo" type="int" required>
+  Document code: `52`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Guía de despacho electrónica"
+</ParamField>
+
+<ParamField path="nombreCorto" type="string" required>
+  Short name: "Guía de despacho"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "guia_despacho"
+</ParamField>
+
+## Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\GuiaDespachoInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::GUIA_DESPACHO;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 52
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Guía de despacho electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Guía de despacho"
+
+// Get alias
+$alias = $documentType->getAlias(); // "guia_despacho"
+
+// Get interface class
+$interface = $documentType->getInterface(); // GuiaDespachoInterface::class
+```
+
+## Common Use Cases
+
+### 1. Deferred Invoicing
+
+Ship goods today with a Guía de Despacho, invoice later:
+
+```php
+// Issue delivery guide
+$guiaDespacho = CodigoDocumento::GUIA_DESPACHO;
+// ... create and send delivery guide ...
+
+// Later, reference the guía when issuing invoice
+$factura = CodigoDocumento::FACTURA_AFECTA;
+// ... create invoice referencing the guía de despacho ...
+```
+
+### 2. Internal Transfers
+
+Transfer inventory between warehouses or branches without a sale:
+
+```php
+$documentType = CodigoDocumento::GUIA_DESPACHO;
+// Document transfer from Warehouse A to Warehouse B
+// No invoice needed as this is an internal movement
+```
+
+### 3. Consignment Sales
+
+Deliver goods to a retailer for consignment:
+
+```php
+$documentType = CodigoDocumento::GUIA_DESPACHO;
+// Send goods to retailer
+// Invoice issued later when goods are sold
+```
+
+## Comparison with Other Documents
+
+| Feature | Guía de Despacho (52) | Factura (33/34) | Boleta (39/41) |
+|---------|----------------------|-----------------|----------------|
+| Purpose | Document delivery | Invoice sale | Receipt sale |
+| Invoicing | No | Yes | Yes |
+| Use Case | Goods in transit | B2B sales | B2C sales |
+| Payment | Not required | Required | Required |
+| Can be referenced | Yes | Yes | Yes |
+
+## Workflow Example
+
+1. **Day 1**: Issue Guía de Despacho (52) when goods leave warehouse
+2. **Transport**: Guía accompanies goods during transport
+3. **Delivery**: Customer receives goods and signs Guía de Despacho
+4. **Day 7**: Issue Factura Afecta (33) for payment, referencing the Guía
+5. **Payment**: Customer pays invoice based on agreed terms
+
+## Related Document Types
+
+- **Factura Afecta (33)**: Invoice that may reference a Guía de Despacho
+- **Factura Exenta (34)**: Tax-exempt invoice referencing a Guía
+- **Factura Exportación (110)**: Export invoice for international shipments
+- **Nota de Crédito (61)**: May be needed if goods are returned
+
+## Implementation
+
+The Guía de Despacho implements the `GuiaDespachoInterface`, which extends the base `DocumentInterface`.
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface GuiaDespachoInterface extends DocumentInterface
+{
+    // Delivery guide specific methods and properties
+}
+```
+
+## Important Notes
+
+<Note>
+**Legal Requirement**: In Chile, goods cannot legally be transported without proper documentation. The Guía de Despacho serves this legal purpose.
+</Note>
+
+<Note>
+**Not a Tax Document**: While the Guía de Despacho is an official SII document, it does not represent a taxable transaction by itself. The corresponding invoice (if applicable) handles the tax aspects.
+</Note>

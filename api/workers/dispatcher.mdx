@@ -1,0 +1,221 @@
+---
+title: Dispatcher Worker
+description: Create and manage document envelopes for sending to tax authorities
+---
+
+The Dispatcher Worker manages the creation, validation, and handling of document envelopes (sobres) used for sending tax documents to authorities.
+
+## Overview
+
+The Dispatcher Worker handles document envelope operations:
+
+- Create envelopes from document bags
+- Normalize envelope contents
+- Load envelopes from XML
+- Validate envelope structure and signatures
+
+## Methods
+
+### create
+
+Creates an envelope from a tax document bag.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the tax document data to envelope.
+</ParamField>
+
+<ResponseField name="return" type="DocumentEnvelopeInterface">
+  The created document envelope.
+</ResponseField>
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$dispatcher = $documentComponent->getDispatcherWorker();
+
+// Create an envelope from a document bag
+$envelope = $dispatcher->create($bag);
+```
+
+### normalize
+
+Normalizes an envelope with transferred tax document data.
+
+<ParamField path="envelope" type="DocumentEnvelopeInterface" required>
+  The envelope to normalize. Missing content will be completed automatically.
+</ParamField>
+
+<ResponseField name="return" type="DocumentEnvelopeInterface">
+  The normalized envelope.
+</ResponseField>
+
+```php
+// Normalize envelope contents
+$normalizedEnvelope = $dispatcher->normalize($envelope);
+```
+
+### loadXml
+
+Loads a document envelope from XML string.
+
+<ParamField path="xml" type="string" required>
+  XML data of the tax document envelope.
+</ParamField>
+
+<ResponseField name="return" type="DocumentEnvelopeInterface">
+  Container with the loaded envelope data.
+</ResponseField>
+
+**Throws:** `DispatcherException` if loading fails.
+
+```php
+// Load envelope from XML file
+$xmlString = file_get_contents('/path/to/envelope.xml');
+$envelope = $dispatcher->loadXml($xmlString);
+```
+
+### validate
+
+Validates a tax document envelope.
+
+<ParamField path="source" type="DocumentEnvelopeInterface|XmlDocumentInterface|string" required>
+  The envelope to validate. Can be an envelope object, XmlDocument, or XML string.
+</ParamField>
+
+<ResponseField name="return" type="XmlDocumentInterface">
+  The validated XML document.
+</ResponseField>
+
+**Throws:** `DispatcherException` if validation fails.
+
+```php
+// Validate an envelope
+$xmlDoc = $dispatcher->validate($envelope);
+```
+
+### validateSchema
+
+Validates the XML schema of a document envelope.
+
+<ParamField path="source" type="DocumentEnvelopeInterface|XmlDocumentInterface|string" required>
+  The envelope to validate. Can be an envelope object, XmlDocument, or XML string.
+</ParamField>
+
+<ResponseField name="return" type="XmlDocumentInterface">
+  The validated XML document.
+</ResponseField>
+
+**Throws:** `XmlException` if schema validation fails.
+
+```php
+// Validate envelope schema
+$xmlDoc = $dispatcher->validateSchema($xmlString);
+```
+
+### validateSignature
+
+Validates the digital signature of a document envelope.
+
+<ParamField path="source" type="DocumentEnvelopeInterface|XmlDocumentInterface|string" required>
+  The envelope to validate. Can be an envelope object, XmlDocument, or XML string.
+</ParamField>
+
+<ResponseField name="return" type="XmlDocumentInterface">
+  The validated XML document.
+</ResponseField>
+
+**Throws:** `SignatureException` if signature validation fails.
+
+```php
+// Validate envelope signature
+$xmlDoc = $dispatcher->validateSignature($envelope);
+```
+
+## Accessing the Dispatcher Worker
+
+Access the Dispatcher Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$dispatcher = $documentComponent->getDispatcherWorker();
+```
+
+## Usage Example
+
+Complete envelope creation and validation workflow:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\DispatcherException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Build a document first
+$bag = $documentComponent->bill(
+    data: [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '87654321-0']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product 1', 'PrcItem' => 1000]
+        ]
+    ],
+    caf: '/path/to/caf.xml',
+    certificate: '/path/to/certificate.pfx'
+);
+
+// Create an envelope
+$dispatcher = $documentComponent->getDispatcherWorker();
+$envelope = $dispatcher->create($bag);
+
+// Normalize the envelope
+$envelope = $dispatcher->normalize($envelope);
+
+// Validate before sending
+try {
+    $dispatcher->validate($envelope);
+    echo "Envelope is valid and ready to send";
+} catch (DispatcherException $e) {
+    echo "Envelope validation failed: " . $e->getMessage();
+}
+
+// Get XML for transmission
+$envelopeXml = $envelope->toXml();
+
+// Later, load and validate a received envelope
+$receivedXml = file_get_contents('/path/to/received_envelope.xml');
+try {
+    $receivedEnvelope = $dispatcher->loadXml($receivedXml);
+    $dispatcher->validateSchema($receivedEnvelope);
+    $dispatcher->validateSignature($receivedEnvelope);
+    echo "Received envelope is valid";
+} catch (DispatcherException $e) {
+    echo "Invalid envelope: " . $e->getMessage();
+}
+```
+
+## Document Envelopes
+
+Envelopes (sobres) are XML containers that wrap one or more tax documents for transmission to tax authorities. They include:
+
+- Document metadata
+- Sender information
+- Digital signature
+- One or more DTE documents
+- Transmission timestamps
+
+## Validation Levels
+
+The Dispatcher provides multiple validation levels:
+
+1. **Schema validation**: Ensures XML structure compliance
+2. **Signature validation**: Verifies digital signature integrity
+3. **Complete validation**: Performs all checks

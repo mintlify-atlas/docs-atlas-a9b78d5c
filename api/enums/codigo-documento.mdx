@@ -1,0 +1,186 @@
+---
+title: CodigoDocumento
+description: Enum de códigos de documentos tributarios electrónicos oficiales del SII
+---
+
+`CodigoDocumento` es un enum PHP que define los códigos oficiales de los documentos tributarios electrónicos (DTE) reconocidos por el Servicio de Impuestos Internos (SII) de Chile.
+
+## Namespace
+
+```php
+libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento
+```
+
+## Casos del Enum
+
+El enum define los siguientes documentos tributarios con sus códigos oficiales:
+
+<ResponseField name="FACTURA_AFECTA" type="int" default="33">
+  Factura electrónica afecta a IVA
+</ResponseField>
+
+<ResponseField name="FACTURA_EXENTA" type="int" default="34">
+  Factura no afecta o exenta electrónica
+</ResponseField>
+
+<ResponseField name="BOLETA_AFECTA" type="int" default="39">
+  Boleta electrónica afecta a IVA
+</ResponseField>
+
+<ResponseField name="BOLETA_EXENTA" type="int" default="41">
+  Boleta no afecta o exenta electrónica
+</ResponseField>
+
+<ResponseField name="LIQUIDACION_FACTURA" type="int" default="43">
+  Liquidación factura electrónica
+</ResponseField>
+
+<ResponseField name="FACTURA_COMPRA" type="int" default="46">
+  Factura de compra electrónica
+</ResponseField>
+
+<ResponseField name="GUIA_DESPACHO" type="int" default="52">
+  Guía de despacho electrónica
+</ResponseField>
+
+<ResponseField name="NOTA_DEBITO" type="int" default="56">
+  Nota de débito electrónica
+</ResponseField>
+
+<ResponseField name="NOTA_CREDITO" type="int" default="61">
+  Nota de crédito electrónica
+</ResponseField>
+
+<ResponseField name="FACTURA_EXPORTACION" type="int" default="110">
+  Factura de exportación electrónica
+</ResponseField>
+
+<ResponseField name="NOTA_DEBITO_EXPORTACION" type="int" default="111">
+  Nota de débito de exportación electrónica
+</ResponseField>
+
+<ResponseField name="NOTA_CREDITO_EXPORTACION" type="int" default="112">
+  Nota de crédito de exportación electrónica
+</ResponseField>
+
+## Métodos Públicos
+
+### getCodigo()
+
+Entrega el código oficial del documento según el SII.
+
+```php
+public function getCodigo(): int
+```
+
+**Retorna:** `int` - El código numérico del documento
+
+**Ejemplo:**
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+
+$codigo = CodigoDocumento::FACTURA_AFECTA;
+echo $codigo->getCodigo(); // 33
+```
+
+### getNombre()
+
+Entrega el nombre completo del tipo de documento.
+
+```php
+public function getNombre(): string
+```
+
+**Retorna:** `string` - Nombre completo del documento (incluye "electrónica")
+
+**Ejemplo:**
+```php
+$codigo = CodigoDocumento::FACTURA_AFECTA;
+echo $codigo->getNombre(); // "Factura electrónica"
+```
+
+### getNombreCorto()
+
+Entrega el nombre corto del tipo de documento (sin la palabra "electrónica").
+
+```php
+public function getNombreCorto(): string
+```
+
+**Retorna:** `string` - Nombre corto del documento
+
+**Ejemplo:**
+```php
+$codigo = CodigoDocumento::GUIA_DESPACHO;
+echo $codigo->getNombreCorto(); // "Guía de despacho"
+```
+
+### getAlias()
+
+Entrega el alias técnico del documento utilizado internamente.
+
+```php
+public function getAlias(): string
+```
+
+**Retorna:** `string` - Alias del documento en formato snake_case
+
+**Ejemplo:**
+```php
+$codigo = CodigoDocumento::NOTA_CREDITO;
+echo $codigo->getAlias(); // "nota_credito"
+```
+
+### getInterface()
+
+Entrega la interfaz PHP asociada al tipo de documento.
+
+```php
+public function getInterface(): string
+```
+
+**Retorna:** `string` - Nombre completo de la clase de la interfaz
+
+**Ejemplo:**
+```php
+$codigo = CodigoDocumento::FACTURA_EXPORTACION;
+echo $codigo->getInterface();
+// "libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\FacturaExportacionInterface"
+```
+
+## Ejemplo de Uso Completo
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+
+// Obtener información de una factura afecta
+$factura = CodigoDocumento::FACTURA_AFECTA;
+
+echo "Código: " . $factura->getCodigo() . "\n";
+// Código: 33
+
+echo "Nombre: " . $factura->getNombre() . "\n";
+// Nombre: Factura electrónica
+
+echo "Nombre corto: " . $factura->getNombreCorto() . "\n";
+// Nombre corto: Factura
+
+echo "Alias: " . $factura->getAlias() . "\n";
+// Alias: factura_afecta
+
+// Iterar sobre todos los tipos de documentos
+foreach (CodigoDocumento::cases() as $tipo) {
+    echo sprintf(
+        "[%d] %s\n",
+        $tipo->getCodigo(),
+        $tipo->getNombre()
+    );
+}
+```
+
+## Notas
+
+- Este enum utiliza PHP 8.1+ Backed Enums con tipo `int`
+- Los códigos son los oficiales definidos por el SII de Chile
+- Cada caso tiene asociado un nombre, alias e interfaz para facilitar su uso programático
+- Los valores del enum corresponden directamente a los códigos usados en los XML de DTE

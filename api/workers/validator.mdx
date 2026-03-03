@@ -1,0 +1,133 @@
+---
+title: Validator Worker
+description: Validate tax documents including schema and digital signature verification
+---
+
+The Validator Worker validates tax documents (DTEs) by checking their XML schema compliance and digital signature integrity.
+
+## Overview
+
+The Validator Worker provides comprehensive validation for tax documents:
+
+- **Schema validation**: Ensures XML structure matches DTE schemas
+- **Signature validation**: Verifies digital signature integrity
+- **Complete validation**: Performs all validation checks
+
+## Methods
+
+### validate
+
+Performs complete validation of a tax document.
+
+<ParamField path="source" type="DocumentBagInterface|XmlDocumentInterface|string" required>
+  The document to validate. Can be a DocumentBag, XmlDocument instance, or XML string.
+</ParamField>
+
+**Returns:** `void`
+
+**Throws:** `ValidatorException` if validation fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$validator = $documentComponent->getValidatorWorker();
+
+// Validate a document bag
+$validator->validate($bag);
+
+// Validate from XML string
+$validator->validate($xmlString);
+```
+
+### validateSchema
+
+Validates the XML schema of a DTE document.
+
+<ParamField path="source" type="DocumentBagInterface|XmlDocumentInterface|string" required>
+  The document to validate. Can be a DocumentBag, XmlDocument instance, or XML string.
+</ParamField>
+
+**Returns:** `void`
+
+**Throws:** `XmlException` if schema validation fails.
+
+```php
+// Validate only the XML schema
+$validator->validateSchema($xmlDocument);
+```
+
+### validateSignature
+
+Validates the digital signature of a DTE document.
+
+<ParamField path="source" type="DocumentBagInterface|XmlDocumentInterface|string" required>
+  The document to validate. Can be a DocumentBag, XmlDocument instance, or XML string.
+</ParamField>
+
+**Returns:** `void`
+
+**Throws:** `SignatureException` if signature validation fails.
+
+```php
+// Validate only the digital signature
+$validator->validateSignature($xmlDocument);
+```
+
+## Accessing the Validator Worker
+
+Access the Validator Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$validator = $documentComponent->getValidatorWorker();
+```
+
+## Usage Example
+
+Complete validation workflow:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use Derafu\Xml\Exception\XmlException;
+use Derafu\Signature\Exception\SignatureException;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\ValidatorException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$validator = $documentComponent->getValidatorWorker();
+
+// Load XML document
+$xmlString = file_get_contents('/path/to/document.xml');
+
+try {
+    // Perform complete validation
+    $validator->validate($xmlString);
+    echo "Document is valid";
+} catch (ValidatorException $e) {
+    echo "Validation failed: " . $e->getMessage();
+}
+
+// Or validate specific aspects
+try {
+    $validator->validateSchema($xmlString);
+    echo "Schema is valid";
+} catch (XmlException $e) {
+    echo "Schema validation failed: " . $e->getMessage();
+}
+
+try {
+    $validator->validateSignature($xmlString);
+    echo "Signature is valid";
+} catch (SignatureException $e) {
+    echo "Signature validation failed: " . $e->getMessage();
+}
+```
+
+## Strategy Pattern
+
+The Validator Worker implements `StrategiesAwareInterface`, allowing different validation strategies for various document types and validation requirements.

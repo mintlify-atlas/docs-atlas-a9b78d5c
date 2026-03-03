@@ -1,0 +1,130 @@
+---
+title: PackageRegistry
+description: Registry for accessing LibreDTE packages including billing and other modules
+---
+
+The `PackageRegistry` class provides access to all available packages in LibreDTE Core. It implements the `PackageRegistryInterface` and uses the `PackageRegistryTrait` for common registry functionality.
+
+## Overview
+
+LibreDTE's mission is to **provide free, accessible, and well-documented electronic invoicing for Chile**. As such, this library focuses exclusively on providing functionality related to Chilean electronic invoicing.
+
+## Class Definition
+
+```php
+namespace libredte\lib\Core;
+
+class PackageRegistry implements PackageRegistryInterface
+```
+
+## Available Packages
+
+LibreDTE Lib Core contains the following packages:
+
+- **billing** - Electronic billing and invoicing package for Chile
+
+## Public Methods
+
+### getBillingPackage()
+
+Get the billing package for electronic invoicing functionality.
+
+```php
+public function getBillingPackage(): BillingPackageInterface
+```
+
+<ResponseField name="return" type="BillingPackageInterface">
+  The billing package instance providing access to all electronic invoicing features for Chile.
+</ResponseField>
+
+#### Example
+
+```php
+use libredte\lib\Core\Application;
+
+// Get the application instance
+$app = Application::getInstance();
+
+// Access the package registry
+$registry = $app->getPackageRegistry();
+
+// Get the billing package
+$billing = $registry->getBillingPackage();
+
+// Now you can use billing package features
+// Example: $billing->createInvoice(...)
+```
+
+### getPackage()
+
+Get a package by its name. This method is inherited from `PackageRegistryTrait`.
+
+```php
+public function getPackage(string $name): PackageInterface
+```
+
+<ParamField path="name" type="string" required>
+  The package name. Currently supported: `'billing'`
+</ParamField>
+
+<ResponseField name="return" type="PackageInterface">
+  The requested package instance.
+</ResponseField>
+
+#### Example
+
+```php
+$registry = $app->getPackageRegistry();
+
+// Generic way to access packages
+$billing = $registry->getPackage('billing');
+
+// Type-safe way (recommended)
+$billing = $registry->getBillingPackage();
+```
+
+## Usage Pattern
+
+The typical pattern for accessing packages is:
+
+1. Get the Application instance
+2. Get the PackageRegistry from the Application
+3. Get the specific package you need
+4. Use the package's functionality
+
+```php
+use libredte\lib\Core\Application;
+
+// 1. Get application
+$app = Application::getInstance();
+
+// 2. Get registry
+$registry = $app->getPackageRegistry();
+
+// 3. Get billing package
+$billing = $registry->getBillingPackage();
+
+// 4. Use the package
+// Work with electronic invoicing features...
+```
+
+## Dependency Injection
+
+When using a dependency injection container, you can inject the `PackageRegistryInterface` directly:
+
+```php
+use Derafu\Backbone\Contract\PackageRegistryInterface;
+
+class MyInvoiceService
+{
+    public function __construct(
+        private PackageRegistryInterface $packageRegistry
+    ) {}
+    
+    public function createInvoice(): void
+    {
+        $billing = $this->packageRegistry->getBillingPackage();
+        // Use billing package...
+    }
+}
+```

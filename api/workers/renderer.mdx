@@ -1,0 +1,115 @@
+---
+title: Renderer Worker
+description: Render tax documents into various output formats like PDF
+---
+
+The Renderer Worker transforms tax documents into visual representations, typically PDF format for printing or electronic distribution.
+
+## Overview
+
+The Renderer Worker generates formatted output from tax document data, creating printable versions that comply with tax authority requirements.
+
+## Methods
+
+### render
+
+Renders a tax document into binary output data.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the document data to render.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Binary data of the rendered document (typically PDF).
+</ResponseField>
+
+**Throws:** `RendererException` if rendering fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$renderer = $documentComponent->getRendererWorker();
+
+// Render the document
+$pdfData = $renderer->render($bag);
+
+// Save to file
+file_put_contents('/path/to/output.pdf', $pdfData);
+```
+
+## Accessing the Renderer Worker
+
+Access the Renderer Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$renderer = $documentComponent->getRendererWorker();
+```
+
+## Usage Example
+
+Complete example of rendering a tax document to PDF:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\RendererException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Build the document first
+$bag = $documentComponent->bill(
+    data: [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '87654321-0']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product 1', 'PrcItem' => 1000]
+        ]
+    ],
+    caf: '/path/to/caf.xml',
+    certificate: '/path/to/certificate.pfx'
+);
+
+// Render to PDF
+try {
+    $renderer = $documentComponent->getRendererWorker();
+    $pdfData = $renderer->render($bag);
+    
+    // Save the PDF
+    file_put_contents('/path/to/invoice.pdf', $pdfData);
+    
+    // Or send as download
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="invoice.pdf"');
+    echo $pdfData;
+} catch (RendererException $e) {
+    echo "Rendering failed: " . $e->getMessage();
+}
+```
+
+## Output Format
+
+The renderer generates PDF documents that include:
+
+- Tax document header information
+- Issuer and recipient details
+- Line items with prices and taxes
+- Totals and tax calculations
+- Barcode or QR code for electronic verification
+- Digital signature information
+
+## Strategy Pattern
+
+The Renderer Worker implements `StrategiesAwareInterface`, allowing different rendering strategies for:
+
+- Different document types (invoices, credit notes, etc.)
+- Various output formats (PDF, HTML, etc.)
+- Custom templates and branding

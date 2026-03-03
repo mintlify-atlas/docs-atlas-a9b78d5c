@@ -1,0 +1,325 @@
+---
+title: Creating Electronic Documents
+description: Learn how to create Chilean electronic tax documents (DTE) using LibreDTE Core's document component
+---
+
+LibreDTE Core provides a comprehensive system for creating electronic tax documents (DTE) for Chile. The document creation process involves parsing, normalizing, validating, stamping, and signing documents.
+
+## Overview
+
+The `DocumentComponent` manages all document operations through specialized workers:
+
+- **ParserWorker**: Converts input data to SII standard format
+- **NormalizerWorker**: Calculates and validates required fields
+- **SanitizerWorker**: Cleans and formats data
+- **ValidatorWorker**: Ensures document compliance
+- **BuilderWorker**: Constructs the final DTE with stamp and signature
+- **RendererWorker**: Generates PDF or other output formats
+
+## Basic Document Creation
+
+The simplest way to create a document is using the `bill()` method:
+
+<CodeGroup>
+```php Basic Invoice
+use libredte\lib\Core\Package\Billing\Component\Document\DocumentComponent;
+
+// Get the document component
+$documentComponent = $app->getPackage('billing')
+    ->getComponent('document');
+
+// Create a simple invoice (Factura Afecta - Type 33)
+$bag = $documentComponent->bill(
+    data: [
+        'Encabezado' => [
+            'IdDoc' => [
+                'TipoDTE' => 33,
+                'Folio' => 1,
+            ],
+            'Emisor' => [
+                'RUTEmisor' => '12345678-5',
+                'RznSoc' => 'Empresa S.A.',
+                'GiroEmis' => 'Servicios de software',
+                'Acteco' => 620200,
+                'DirOrigen' => 'Av. Libertador 1000',
+                'CmnaOrigen' => 'Santiago',
+            ],
+            'Receptor' => [
+                'RUTRecep' => '23456789-6',
+                'RznSocRecep' => 'Cliente SpA',
+                'GiroRecep' => 'Comercio al por menor',
+                'DirRecep' => 'Calle Principal 500',
+                'CmnaRecep' => 'Providencia',
+            ],
+        ],
+        'Detalle' => [
+            [
+                'NmbItem' => 'Servicio de consultoría',
+                'QtyItem' => 10,
+                'PrcItem' => 50000,
+            ],
+        ],
+    ],
+    caf: '/path/to/folio_33.xml',
+    certificate: [
+        'data' => file_get_contents('/path/to/certificate.pfx'),
+        'password' => 'cert_password',
+    ]
+);
+
+// Get the created document
+$document = $bag->getDocument();
+echo $document->getXml();
+```
+
+```php With Options
+// Create with custom options
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $cafXml,
+    certificate: $certificate,
+    options: [
+        'normalizer' => [
+            'normalize' => true,
+        ],
+        'validator' => [
+            'validate_schema' => true,
+        ],
+        'builder' => [
+            'timestamp' => '2025-01-15T10:30:00',
+        ],
+    ]
+);
+```
+</CodeGroup>
+
+## Document Creation Workflow
+
+The `bill()` method orchestrates the following steps:
+
+<Steps>
+  <Step title="Parse Input Data">
+    The `ParserWorker` converts your input data (array, JSON, XML) into the SII standard format.
+    
+    ```php
+    // DocumentComponent.php:195
+    $this->parserWorker->parse($bag);
+    ```
+  </Step>
+
+  <Step title="Build Document">
+    The `BuilderWorker` normalizes, sanitizes, validates, stamps, and signs the document.
+    
+    ```php
+    // DocumentComponent.php:198
+    $this->builderWorker->build($bag);
+    ```
+    
+    This includes:
+    - Normalizing data (calculating totals, dates, etc.)
+    - Sanitizing values (trimming, formatting)
+    - Validating business rules
+    - Stamping with CAF (Timbre Electrónico)
+    - Signing with digital certificate
+  </Step>
+
+  <Step title="Access Result">
+    Retrieve the created document from the DocumentBag.
+    
+    ```php
+    $document = $bag->getDocument();
+    $xmlString = $document->getXml();
+    ```
+  </Step>
+</Steps>
+
+## Working with DocumentBag
+
+The `DocumentBag` is a container that carries all document-related data through the creation process:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+
+// Access different data stages
+$inputData = $bag->getInputData();           // Original input
+$parsedData = $bag->getParsedData();         // After parsing
+$normalizedData = $bag->getNormalizedData(); // After normalization
+$xmlDocument = $bag->getXmlDocument();       // Final XML
+$document = $bag->getDocument();             // Document entity
+
+// Access document metadata
+$documentType = $bag->getDocumentType();
+$folio = $bag->getFolio();
+$emisor = $bag->getEmisor();
+$receptor = $bag->getReceptor();
+$caf = $bag->getCaf();
+$certificate = $bag->getCertificate();
+```
+
+## Supported Document Types
+
+LibreDTE Core supports all Chilean electronic document types:
+
+<CardGroup cols={2}>
+  <Card title="Invoices" icon="file-invoice">
+    - Factura Afecta (33)
+    - Factura Exenta (34)
+    - Factura de Compra (46)
+    - Factura de Exportación (110)
+  </Card>
+  
+  <Card title="Credit/Debit Notes" icon="file-lines">
+    - Nota de Crédito (61)
+    - Nota de Débito (56)
+    - Nota de Crédito Exportación (112)
+    - Nota de Débito Exportación (111)
+  </Card>
+  
+  <Card title="Receipts" icon="receipt">
+    - Boleta Afecta (39)
+    - Boleta Exenta (41)
+  </Card>
+  
+  <Card title="Other Documents" icon="file-alt">
+    - Guía de Despacho (52)
+    - Liquidación Factura (43)
+  </Card>
+</CardGroup>
+
+## Creating Multiple Items
+
+```php
+$documentData = [
+    'Encabezado' => [
+        'IdDoc' => [
+            'TipoDTE' => 33,
+            'Folio' => 150,
+            'FchEmis' => '2025-01-15',
+        ],
+        'Emisor' => [
+            'RUTEmisor' => '12345678-5',
+            'RznSoc' => 'Mi Empresa',
+            'GiroEmis' => 'Venta de productos',
+            'Acteco' => 477310,
+            'DirOrigen' => 'Calle 123',
+            'CmnaOrigen' => 'Santiago',
+        ],
+        'Receptor' => [
+            'RUTRecep' => '87654321-9',
+            'RznSocRecep' => 'Cliente S.A.',
+            'GiroRecep' => 'Servicios',
+            'DirRecep' => 'Avenida 456',
+            'CmnaRecep' => 'Las Condes',
+        ],
+        'Totales' => [
+            'MntNeto' => 420168,
+            'TasaIVA' => 19,
+            'IVA' => 79832,
+            'MntTotal' => 500000,
+        ],
+    ],
+    'Detalle' => [
+        [
+            'NroLinDet' => 1,
+            'NmbItem' => 'Producto A',
+            'DscItem' => 'Descripción del producto A',
+            'QtyItem' => 5,
+            'UnmdItem' => 'UN',
+            'PrcItem' => 10000,
+            'MontoItem' => 50000,
+        ],
+        [
+            'NroLinDet' => 2,
+            'NmbItem' => 'Producto B',
+            'QtyItem' => 10,
+            'UnmdItem' => 'UN',
+            'PrcItem' => 25000,
+            'MontoItem' => 250000,
+        ],
+        [
+            'NroLinDet' => 3,
+            'NmbItem' => 'Servicio C',
+            'QtyItem' => 1,
+            'PrcItem' => 200000,
+            'MontoItem' => 200000,
+        ],
+    ],
+];
+
+$bag = $documentComponent->bill($documentData, $caf, $certificate);
+```
+
+<Note>
+  The normalizer automatically calculates totals, IVA, and other required fields if not provided. You can let LibreDTE calculate them or provide explicit values.
+</Note>
+
+## Manual Document Building
+
+For advanced use cases, you can use workers directly:
+
+```php
+// Get individual workers
+$builderWorker = $documentComponent->getBuilderWorker();
+$parserWorker = $documentComponent->getParserWorker();
+$validatorWorker = $documentComponent->getValidatorWorker();
+
+// Create a bag manually
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+
+$bag = new DocumentBag(
+    inputData: $data,
+    caf: $caf,
+    certificate: $certificate,
+    options: $options
+);
+
+// Process step by step
+$parserWorker->parse($bag);
+$builderWorker->build($bag);
+$validatorWorker->validateSchema($bag);
+$validatorWorker->validateSignature($bag);
+
+$document = $bag->getDocument();
+```
+
+## Error Handling
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\BuilderException;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\ValidatorException;
+
+try {
+    $bag = $documentComponent->bill($data, $caf, $certificate);
+    $document = $bag->getDocument();
+} catch (BuilderException $e) {
+    // Handle building errors (stamping, signing, etc.)
+    echo "Error building document: " . $e->getMessage();
+} catch (ValidatorException $e) {
+    // Handle validation errors
+    echo "Validation error: " . $e->getMessage();
+}
+```
+
+<Warning>
+  Always validate your CAF (folio range) and certificate validity before creating documents. The builder will throw exceptions if the folio is out of range or the certificate is expired.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Digital Signatures" icon="signature" href="/guides/digital-signatures">
+    Learn about signing documents with digital certificates
+  </Card>
+  
+  <Card title="Document Validation" icon="check-circle" href="/guides/document-validation">
+    Validate documents against SII schemas and business rules
+  </Card>
+  
+  <Card title="PDF Generation" icon="file-pdf" href="/guides/pdf-generation">
+    Generate printable PDF versions of your documents
+  </Card>
+  
+  <Card title="SII Integration" icon="cloud" href="/guides/sii-integration">
+    Send documents to SII and check their status
+  </Card>
+</CardGroup>

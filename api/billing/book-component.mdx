@@ -1,0 +1,140 @@
+---
+title: Book Component
+description: Manage sales and purchase books for tax reporting
+---
+
+The Book Component (`billing.book`) handles the management of sales and purchase books (Libro de Ventas y Compras) required for tax reporting in Chile.
+
+## Overview
+
+This component provides functionality for creating, maintaining, and reporting sales and purchase books that consolidate all tax documents issued and received during a period.
+
+<Note>
+  This component is currently under development. Workers and functionality will be added in future releases.
+</Note>
+
+## Status
+
+The Book Component is in active development. The following features are planned:
+
+<AccordionGroup>
+  <Accordion title="Sales Book Management" icon="book-open">
+    Track and consolidate all issued sales documents (invoices, receipts, credit/debit notes) for a period.
+  </Accordion>
+  
+  <Accordion title="Purchase Book Management" icon="shopping-cart">
+    Track and consolidate all received purchase documents for a period.
+  </Accordion>
+  
+  <Accordion title="Book Generation" icon="file-export">
+    Generate official sales and purchase book reports in required formats for SII submission.
+  </Accordion>
+  
+  <Accordion title="Period Management" icon="calendar">
+    Manage books by tax periods (monthly, yearly).
+  </Accordion>
+  
+  <Accordion title="Book Validation" icon="check">
+    Validate book completeness and accuracy before submission.
+  </Accordion>
+</AccordionGroup>
+
+## Planned Workers
+
+The following workers are planned for implementation:
+
+- **Builder Worker**: Constructs sales and purchase books from document collections
+- **Validator Worker**: Validates book content and structure
+- **Generator Worker**: Generates book reports in required formats (XML, PDF)
+- **Loader Worker**: Loads existing books from storage
+- **Period Manager Worker**: Manages book periods and closures
+
+## Current Implementation
+
+### getWorkers
+
+Returns all available workers in this component.
+
+<ResponseField name="return" type="array">
+  Returns an empty array (no workers implemented yet)
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Book\BookComponent;
+
+$bookComponent = $billingPackage->getBookComponent();
+$workers = $bookComponent->getWorkers(); // Currently returns []
+```
+
+## Expected Usage (Coming Soon)
+
+Once implemented, the component will support operations like:
+
+```php
+// Future usage example (not yet implemented)
+use libredte\lib\Core\Package\Billing\Component\Book\BookComponent;
+
+$bookComponent = $billingPackage->getBookComponent();
+
+// Build a sales book for a period
+$salesBook = $bookComponent->buildSalesBook(
+    period: '2024-03',
+    documents: $salesDocuments
+);
+
+// Build a purchase book
+$purchaseBook = $bookComponent->buildPurchaseBook(
+    period: '2024-03',
+    documents: $purchaseDocuments
+);
+
+// Generate book report for SII
+$bookReport = $bookComponent->generateReport($salesBook);
+
+// Validate before submission
+$isValid = $bookComponent->validate($salesBook);
+```
+
+## Books in Chilean Tax System
+
+In the Chilean tax system, businesses must maintain:
+
+### Libro de Ventas (Sales Book)
+
+A register of all sales documents issued:
+- Facturas Electrónicas (Electronic Invoices)
+- Boletas Electrónicas (Electronic Receipts)
+- Notas de Crédito (Credit Notes)
+- Notas de Débito (Debit Notes)
+- Facturas de Exportación (Export Invoices)
+
+### Libro de Compras (Purchase Book)
+
+A register of all purchase documents received:
+- Purchase invoices from suppliers
+- Credit and debit notes received
+- Import documents
+
+### Reporting Requirements
+
+Books must be:
+- Maintained for each tax period (monthly)
+- Submitted to SII electronically
+- Kept for the legally required retention period
+- Available for tax audits
+
+## Development Status
+
+Check the source code for the latest implementation status:
+
+Location: `/workspace/source/src/Package/Billing/Component/Book/BookComponent.php:37`
+
+<Info>
+  Workers and methods are being actively developed. Check the official LibreDTE documentation for updates on availability.
+</Info>
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\Book\BookComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/Book/BookComponent.php:37`

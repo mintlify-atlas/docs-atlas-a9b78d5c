@@ -1,0 +1,165 @@
+---
+title: OperacionDocumento
+description: Enum de operaciones de documentos en los libros contables (suma o resta)
+---
+
+`OperacionDocumento` es un enum PHP que define el tipo de operación que un documento realiza en los libros contables.
+
+## Namespace
+
+```php
+libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento
+```
+
+## Casos del Enum
+
+El enum define las siguientes operaciones:
+
+<ResponseField name="SUMA" type="string" default="S">
+  Suma en el libro - El documento suma en el registro contable (ej: facturas de venta)
+</ResponseField>
+
+<ResponseField name="RESTA" type="string" default="R">
+  Resta en el libro - El documento resta en el registro contable (ej: notas de crédito)
+</ResponseField>
+
+## Métodos Públicos
+
+### getCodigo()
+
+Entrega el código de la operación.
+
+```php
+public function getCodigo(): string
+```
+
+**Retorna:** `string` - El código de la operación (S o R)
+
+**Ejemplo:**
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento;
+
+$operacion = OperacionDocumento::SUMA;
+echo $operacion->getCodigo(); // "S"
+```
+
+### getNombre()
+
+Entrega el nombre descriptivo de la operación.
+
+```php
+public function getNombre(): string
+```
+
+**Retorna:** `string` - Nombre de la operación
+
+**Ejemplo:**
+```php
+$operacion = OperacionDocumento::RESTA;
+echo $operacion->getNombre(); // "Resta"
+```
+
+## Ejemplo de Uso
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento;
+
+// Uso básico
+$operacion = OperacionDocumento::SUMA;
+
+echo "Código: " . $operacion->getCodigo() . "\n";
+// Código: S
+
+echo "Operación: " . $operacion->getNombre() . "\n";
+// Operación: Suma
+
+// Determinar si suma o resta
+if ($operacion === OperacionDocumento::SUMA) {
+    echo "Este documento incrementa el total del libro\n";
+} else {
+    echo "Este documento disminuye el total del libro\n";
+}
+
+// Iterar sobre todas las operaciones
+foreach (OperacionDocumento::cases() as $op) {
+    echo sprintf(
+        "[%s] %s\n",
+        $op->getCodigo(),
+        $op->getNombre()
+    );
+}
+
+// Salida:
+// [S] Suma
+// [R] Resta
+```
+
+## Integración con TipoDocumento
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\TipoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento;
+
+// La entidad TipoDocumento utiliza este enum
+$tipoDoc = new TipoDocumento(33, 'Factura electrónica');
+$operacion = $tipoDoc->getOperacion();
+
+if ($operacion === OperacionDocumento::SUMA) {
+    echo "Las facturas suman en el libro de ventas\n";
+}
+
+// Ejemplo con nota de crédito
+$notaCredito = new TipoDocumento(61, 'Nota de crédito electrónica');
+$opNC = $notaCredito->getOperacion();
+
+if ($opNC === OperacionDocumento::RESTA) {
+    echo "Las notas de crédito restan en el libro de ventas\n";
+}
+```
+
+## Casos de Uso Comunes
+
+### Documentos que SUMAN (S)
+
+- Facturas (afectas, exentas, de exportación)
+- Boletas (afectas, exentas)
+- Facturas de compra
+- Guías de despacho (en algunos contextos)
+- Notas de débito
+
+### Documentos que RESTAN (R)
+
+- Notas de crédito
+- Notas de crédito de exportación
+
+### Cálculo de Totales
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento;
+
+$documentos = [
+    ['tipo' => 'Factura', 'monto' => 100000, 'operacion' => OperacionDocumento::SUMA],
+    ['tipo' => 'Factura', 'monto' => 50000, 'operacion' => OperacionDocumento::SUMA],
+    ['tipo' => 'Nota Crédito', 'monto' => 20000, 'operacion' => OperacionDocumento::RESTA],
+];
+
+$total = 0;
+foreach ($documentos as $doc) {
+    if ($doc['operacion'] === OperacionDocumento::SUMA) {
+        $total += $doc['monto'];
+    } else {
+        $total -= $doc['monto'];
+    }
+}
+
+echo "Total del libro: $" . number_format($total, 0, ',', '.') . "\n";
+// Total del libro: $130.000
+```
+
+## Notas
+
+- Este enum utiliza PHP 8.1+ Backed Enums con tipo `string`
+- La operación determina cómo afecta el documento a los totales de los libros de compra y venta
+- Es fundamental para el cálculo correcto de declaraciones tributarias
+- Las notas de crédito siempre restan, las notas de débito siempre suman
+- Las facturas y boletas generalmente suman en el libro correspondiente

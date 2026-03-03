@@ -1,0 +1,98 @@
+---
+title: 'Factura Exenta (Code 34)'
+description: 'Tax-exempt electronic invoice - Invoice document for commercial transactions not subject to VAT in Chile'
+---
+
+## Overview
+
+The **Factura Exenta** (Code 34) is an electronic invoice used for commercial transactions that are exempt from VAT (Impuesto al Valor Agregado) in Chile. This document type is used when selling goods or services that are not subject to taxation.
+
+<Note>
+**Official Name:** Factura no afecta o exenta electrónica  
+**Document Code:** 34  
+**Enum Constant:** `CodigoDocumento::FACTURA_EXENTA`  
+**Interface:** `FacturaExentaInterface`
+</Note>
+
+## When to Use
+
+Use a Factura Exenta when:
+
+- Selling goods or services exempt from VAT
+- The transaction involves tax-exempt items (e.g., certain food products, books, educational services)
+- Issuing invoices to entities exempt from paying VAT
+- Required by specific tax regulations for exempt transactions
+
+## Document Properties
+
+### Basic Information
+
+<ParamField path="codigo" type="int" required>
+  Document code: `34`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Factura no afecta o exenta electrónica"
+</ParamField>
+
+<ParamField path="nombreCorto" type="string" required>
+  Short name: "Factura no afecta o exenta"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "factura_exenta"
+</ParamField>
+
+## Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\FacturaExentaInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::FACTURA_EXENTA;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 34
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Factura no afecta o exenta electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Factura no afecta o exenta"
+
+// Get alias
+$alias = $documentType->getAlias(); // "factura_exenta"
+
+// Get interface class
+$interface = $documentType->getInterface(); // FacturaExentaInterface::class
+```
+
+## Key Differences from Factura Afecta
+
+| Feature | Factura Afecta (33) | Factura Exenta (34) |
+|---------|---------------------|---------------------|
+| VAT Application | Taxable | Exempt |
+| Common Use | Standard B2B transactions | Tax-exempt goods/services |
+| Tax Calculation | Includes IVA | No IVA applied |
+| Document Code | 33 | 34 |
+
+## Related Document Types
+
+- **Factura Afecta (33)**: For taxable invoices
+- **Boleta Exenta (41)**: Tax-exempt receipt for B2C transactions
+- **Nota de Crédito (61)**: To reverse or correct a Factura Exenta
+- **Nota de Débito (56)**: To add charges to a Factura Exenta
+
+## Implementation
+
+The Factura Exenta implements the `FacturaExentaInterface`, which extends the base `DocumentInterface`.
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface FacturaExentaInterface extends DocumentInterface
+{
+    // Document-specific methods and properties
+}
+```

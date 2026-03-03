@@ -1,0 +1,89 @@
+---
+title: 'Factura Afecta (Code 33)'
+description: 'Electronic invoice (taxable) - The standard invoice document for commercial transactions subject to VAT in Chile'
+---
+
+## Overview
+
+The **Factura Afecta** (Code 33) is the standard electronic invoice used for commercial transactions subject to VAT (Impuesto al Valor Agregado) in Chile. This is the most common document type for B2B transactions.
+
+<Note>
+**Official Name:** Factura electrónica  
+**Document Code:** 33  
+**Enum Constant:** `CodigoDocumento::FACTURA_AFECTA`  
+**Interface:** `FacturaAfectaInterface`
+</Note>
+
+## When to Use
+
+Use a Factura Afecta when:
+
+- Selling goods or services subject to VAT
+- Issuing invoices to other businesses (B2B)
+- The customer requires a tax-deductible document
+- Transactions involve taxable items
+
+## Document Properties
+
+### Basic Information
+
+<ParamField path="codigo" type="int" required>
+  Document code: `33`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Factura electrónica"
+</ParamField>
+
+<ParamField path="nombreCorto" type="string" required>
+  Short name: "Factura"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "factura_afecta"
+</ParamField>
+
+## Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\FacturaAfectaInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::FACTURA_AFECTA;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 33
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Factura electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Factura"
+
+// Get alias
+$alias = $documentType->getAlias(); // "factura_afecta"
+
+// Get interface class
+$interface = $documentType->getInterface(); // FacturaAfectaInterface::class
+```
+
+## Related Document Types
+
+- **Factura Exenta (34)**: For tax-exempt invoices
+- **Nota de Crédito (61)**: To reverse or correct a Factura Afecta
+- **Nota de Débito (56)**: To add charges to a Factura Afecta
+- **Factura de Compra (46)**: Purchase invoice variant
+
+## Implementation
+
+The Factura Afecta implements the `FacturaAfectaInterface`, which extends the base `DocumentInterface`. This ensures type safety and allows for document-specific behavior.
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface FacturaAfectaInterface extends DocumentInterface
+{
+    // Document-specific methods and properties
+}
+```

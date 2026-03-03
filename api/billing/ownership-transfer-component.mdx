@@ -1,0 +1,182 @@
+---
+title: Ownership Transfer Component
+description: Manage ownership transfer documents for goods in transit
+---
+
+The Ownership Transfer Component (`billing.ownership_transfer`) handles the management of ownership transfer documents, which are used to document the transfer of goods ownership during transportation in Chile.
+
+## Overview
+
+This component provides functionality for creating and managing ownership transfer documents (cesión de documentos), allowing the transfer of rights over tax documents from one party to another.
+
+<Note>
+  This component is currently under development. Workers and functionality will be added in future releases.
+</Note>
+
+## Status
+
+The Ownership Transfer Component is in active development. The following features are planned:
+
+<AccordionGroup>
+  <Accordion title="Transfer Document Creation" icon="file-contract">
+    Create ownership transfer documents (Archivo de Transferencia de Crédito - ATC) for factoring and other financial operations.
+  </Accordion>
+  
+  <Accordion title="Transfer Validation" icon="check-circle">
+    Validate transfer documents according to SII regulations and business rules.
+  </Accordion>
+  
+  <Accordion title="Transfer Notification" icon="bell">
+    Notify involved parties (cedente, cesionario, deudor) about ownership transfers.
+  </Accordion>
+  
+  <Accordion title="Transfer Tracking" icon="map-marked">
+    Track the status of ownership transfer documents through their lifecycle.
+  </Accordion>
+  
+  <Accordion title="SII Integration" icon="server">
+    Submit ownership transfer documents to SII for registration.
+  </Accordion>
+</AccordionGroup>
+
+## Planned Workers
+
+The following workers are planned for implementation:
+
+- **Builder Worker**: Constructs ownership transfer documents (AEC - Archivo Electrónico de Cesión)
+- **Validator Worker**: Validates transfer documents and parties
+- **Notifier Worker**: Sends notifications to involved parties
+- **Tracker Worker**: Tracks transfer status and history
+- **Submission Worker**: Submits transfers to SII for registration
+
+## Current Implementation
+
+### getWorkers
+
+Returns all available workers in this component.
+
+<ResponseField name="return" type="array">
+  Returns an empty array (no workers implemented yet)
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\OwnershipTransfer\OwnershipTransferComponent;
+
+$ownershipTransferComponent = $billingPackage->getOwnershipTransferComponent();
+$workers = $ownershipTransferComponent->getWorkers(); // Currently returns []
+```
+
+## Expected Usage (Coming Soon)
+
+Once implemented, the component will support operations like:
+
+```php
+// Future usage example (not yet implemented)
+use libredte\lib\Core\Package\Billing\Component\OwnershipTransfer\OwnershipTransferComponent;
+
+$ownershipTransferComponent = $billingPackage->getOwnershipTransferComponent();
+
+// Create an ownership transfer document
+$transfer = $ownershipTransferComponent->createTransfer([
+    'DocumentoFactoring' => [
+        'TipoDTE' => 33,
+        'Folio' => 12345,
+        'RUTEmisor' => '76123456-7',
+        'FechaEmision' => '2024-03-15',
+        'MontoCesion' => 1000000,
+    ],
+    'Cedente' => [
+        'RUT' => '76123456-7',
+        'RazonSocial' => 'Empresa Cedente',
+    ],
+    'Cesionario' => [
+        'RUT' => '77654321-8',
+        'RazonSocial' => 'Empresa Factoring',
+    ],
+    'Deudor' => [
+        'RUT' => '88765432-9',
+        'RazonSocial' => 'Cliente Deudor',
+    ],
+]);
+
+// Validate the transfer
+$isValid = $ownershipTransferComponent->validate($transfer);
+
+// Submit to SII
+$response = $ownershipTransferComponent->submit($transfer, $certificate);
+
+// Notify parties
+$ownershipTransferComponent->notifyParties($transfer);
+```
+
+## Ownership Transfer in Chilean Tax System
+
+In Chile, ownership transfer documents (cesión) allow:
+
+### Electronic Credit Assignment (AEC)
+
+Businesses can assign their receivables (facturas) to third parties (typically factoring companies):
+
+- **Cedente**: The original creditor (issuer of the invoice) who transfers the right to collect
+- **Cesionario**: The new creditor (usually a factoring company or financial institution) who receives the right
+- **Deudor**: The debtor (receiver of the invoice) who must pay to the new creditor
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Factoring" icon="hand-holding-usd">
+    Sell invoices to factoring companies for immediate cash flow
+  </Card>
+  
+  <Card title="Debt Collection" icon="file-invoice-dollar">
+    Transfer collection rights to specialized agencies
+  </Card>
+  
+  <Card title="Securitization" icon="chart-line">
+    Package receivables for financial instruments
+  </Card>
+  
+  <Card title="Financing" icon="coins">
+    Use invoices as collateral for financing
+  </Card>
+</CardGroup>
+
+### Legal Requirements
+
+Ownership transfers must:
+- Be registered electronically with SII
+- Include digital signatures from all parties
+- Notify the debtor of the transfer
+- Comply with the current factoring law (Ley 19.983)
+- Maintain a complete audit trail
+
+### Document Types
+
+The component will handle:
+- **AEC (Archivo Electrónico de Cesión)**: Electronic assignment file
+- **DEC (Declaración de Cesión)**: Assignment declaration
+- **Notificación de Cesión**: Assignment notification to debtor
+
+## Development Status
+
+Check the source code for the latest implementation status:
+
+Location: `/workspace/source/src/Package/Billing/Component/OwnershipTransfer/OwnershipTransferComponent.php:37`
+
+<Info>
+  Workers and methods are being actively developed. Check the official LibreDTE documentation for updates on availability.
+</Info>
+
+## Error Handling
+
+The component will throw specific exceptions:
+
+- `OwnershipTransferException`: General ownership transfer errors
+
+Exception: `libredte\lib\Core\Package\Billing\Component\OwnershipTransfer\Exception\OwnershipTransferException`
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\OwnershipTransfer\OwnershipTransferComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/OwnershipTransfer/OwnershipTransferComponent.php:37`

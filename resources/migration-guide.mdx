@@ -1,0 +1,170 @@
+---
+title: Migration Guide
+description: Upgrade your LibreDTE Core installation to the latest version with this comprehensive migration guide.
+---
+
+## Overview
+
+This guide helps you migrate to LibreDTE Core and understand the requirements for running the library.
+
+## PHP Version Requirements
+
+<Warning>
+  LibreDTE Core requires **PHP 8.5 or higher**. Ensure your environment meets this requirement before proceeding.
+</Warning>
+
+### Required PHP Extensions
+
+The following PHP extensions are mandatory:
+
+- `ext-curl` - For HTTP requests to SII webservices
+- `ext-json` - For JSON data handling
+- `ext-mbstring` - For multibyte string operations
+- `ext-openssl` - For certificate and signature operations
+- `ext-soap` - For SOAP webservice communication with SII
+
+## System Requirements
+
+### Composer Dependencies
+
+LibreDTE Core uses modern PHP packages:
+
+- **Symfony Components** (^7.4): Cache, Filesystem, Mailer, MIME
+- **PDF Generation**: mPDF (^8.2) and TCPDF (^6.11)
+- **CSV Processing**: League CSV (^9.28)
+- **Date/Time**: Carbon (^3.11)
+- **Security**: phpseclib (^3.0)
+
+### Development Requirements
+
+For development environments, you'll also need:
+
+- `ext-xdebug` - For code coverage
+- PHP CS Fixer (^3.94) - Code style
+- PHPStan (^1.12) - Static analysis
+- PHPUnit (^11.5) - Testing framework
+
+## Major Changes
+
+### Architecture
+
+<Note>
+  LibreDTE Core uses a component-based architecture with workers, strategies, and factories for maximum flexibility and testability.
+</Note>
+
+#### Package Structure
+
+The library is organized into packages:
+
+- **Billing Package** - Main package for electronic invoicing
+  - Document Component - Document creation and validation
+  - Trading Parties Component - Emisor/Receptor management
+  - Integration Component - SII webservice integration
+  - Exchange Component - Document exchange via email/SII
+  - Identifier Component - CAF (Folio) management
+  - Ownership Transfer Component - Guía handling
+
+### Namespace Changes
+
+All classes use the namespace:
+
+```php
+libredte\lib\Core\Package\Billing\...
+```
+
+## Migration Steps
+
+<Steps>
+  <Step title="Update PHP Version">
+    Ensure your server is running PHP 8.5 or higher:
+    
+    ```bash
+    php -v
+    ```
+  </Step>
+
+  <Step title="Install Required Extensions">
+    Verify all required PHP extensions are installed:
+    
+    ```bash
+    php -m | grep -E "curl|json|mbstring|openssl|soap"
+    ```
+  </Step>
+
+  <Step title="Update Composer Dependencies">
+    Install LibreDTE Core via Composer:
+    
+    ```bash
+    composer require libredte/libredte-lib-core
+    ```
+  </Step>
+
+  <Step title="Update Your Code">
+    Migrate to the new component-based architecture. See the [Examples](/resources/examples) page for code samples.
+  </Step>
+
+  <Step title="Test Your Integration">
+    Run your test suite to ensure compatibility:
+    
+    ```bash
+    vendor/bin/phpunit
+    ```
+  </Step>
+</Steps>
+
+## Environment Configuration
+
+### SII Environments
+
+LibreDTE Core supports two SII environments:
+
+- **Certification** - For testing (`SiiAmbiente::CERTIFICACION`)
+- **Production** - For live operations (`SiiAmbiente::PRODUCCION`)
+
+### Certificate Configuration
+
+For SII integration, you need a valid digital certificate:
+
+```php
+use Derafu\Certificate\Service\CertificateLoader;
+
+$certificateLoader = new CertificateLoader();
+$certificate = $certificateLoader->loadFromFile(
+    '/path/to/certificate.pfx',
+    'certificate-password'
+);
+```
+
+## Breaking Changes
+
+<Warning>
+  The library now uses strict types (`declare(strict_types=1)`) throughout. Ensure your code passes correct data types.
+</Warning>
+
+### Type Safety
+
+All methods use strict type hints and return types. Update your code accordingly:
+
+```php
+// Old (loose types)
+$folio = "123";
+
+// New (strict types)
+$folio = 123;
+```
+
+## Getting Help
+
+If you encounter issues during migration:
+
+- Check the [Troubleshooting](/resources/troubleshooting) guide
+- Review the [FAQ](/resources/faq)
+- Visit the [GitHub Issues](https://github.com/libredte/libredte-lib-core/issues)
+
+## Next Steps
+
+After migrating:
+
+1. Review the [Examples](/resources/examples) for common use cases
+2. Read the [API Reference](/api/billing/overview) for detailed documentation
+3. Join the LibreDTE community for support

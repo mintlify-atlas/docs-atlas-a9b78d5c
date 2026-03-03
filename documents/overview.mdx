@@ -1,0 +1,99 @@
+---
+title: 'Document Types Overview'
+description: 'Overview of the 12 electronic document types supported by LibreDTE Core for Chilean electronic invoicing'
+---
+
+LibreDTE Core supports 12 types of electronic tax documents (Documentos Tributarios Electrónicos) as defined by Chile's SII (Servicio de Impuestos Internos).
+
+## Document Categories
+
+The library provides support for the following document types, each identified by an official SII document code:
+
+<CardGroup cols={2}>
+  <Card title="Factura Afecta" icon="file-invoice" href="/documents/factura-afecta">
+    Code 33 - Electronic invoice (taxable)
+  </Card>
+  <Card title="Factura Exenta" icon="file-invoice" href="/documents/factura-exenta">
+    Code 34 - Electronic invoice (tax-exempt)
+  </Card>
+  <Card title="Boleta Afecta" icon="receipt" href="/documents/boleta">
+    Code 39 - Electronic receipt (taxable)
+  </Card>
+  <Card title="Boleta Exenta" icon="receipt" href="/documents/boleta">
+    Code 41 - Electronic receipt (tax-exempt)
+  </Card>
+  <Card title="Liquidación Factura" icon="file-contract" href="/documents/liquidacion-factura">
+    Code 43 - Electronic invoice settlement
+  </Card>
+  <Card title="Factura de Compra" icon="shopping-cart" href="/documents/factura-afecta">
+    Code 46 - Electronic purchase invoice
+  </Card>
+  <Card title="Guía de Despacho" icon="truck" href="/documents/guia-despacho">
+    Code 52 - Electronic delivery guide
+  </Card>
+  <Card title="Nota de Débito" icon="file-circle-plus" href="/documents/nota-credito-debito">
+    Code 56 - Electronic debit note
+  </Card>
+  <Card title="Nota de Crédito" icon="file-circle-minus" href="/documents/nota-credito-debito">
+    Code 61 - Electronic credit note
+  </Card>
+  <Card title="Factura Exportación" icon="globe" href="/documents/factura-exportacion">
+    Code 110 - Electronic export invoice
+  </Card>
+  <Card title="Nota Débito Exportación" icon="globe" href="/documents/factura-exportacion">
+    Code 111 - Electronic export debit note
+  </Card>
+  <Card title="Nota Crédito Exportación" icon="globe" href="/documents/factura-exportacion">
+    Code 112 - Electronic export credit note
+  </Card>
+</CardGroup>
+
+## Document Code Enum
+
+All document types are defined in the `CodigoDocumento` enum:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+
+// Access document codes
+CodigoDocumento::FACTURA_AFECTA->value; // 33
+CodigoDocumento::BOLETA_AFECTA->value; // 39
+CodigoDocumento::NOTA_CREDITO->value; // 61
+```
+
+<Note>
+Each document type has its own interface in the `Contract\Document` namespace, ensuring type safety and clear separation of concerns.
+</Note>
+
+## Common Properties
+
+All document types share common functionality through the base `DocumentInterface`:
+
+- Document code (código)
+- Document name (nombre)
+- Short name (nombre corto)
+- Alias for programmatic access
+- Associated PHP interface
+
+## Using Document Types
+
+You can retrieve document information using the enum methods:
+
+```php
+$factura = CodigoDocumento::FACTURA_AFECTA;
+
+// Get official SII code
+$codigo = $factura->getCodigo(); // 33
+
+// Get full name
+$nombre = $factura->getNombre(); // "Factura electrónica"
+
+// Get short name (without "electrónica")
+$nombreCorto = $factura->getNombreCorto(); // "Factura"
+
+// Get alias
+$alias = $factura->getAlias(); // "factura_afecta"
+
+// Get associated interface
+$interface = $factura->getInterface(); // FacturaAfectaInterface::class
+```

@@ -1,0 +1,109 @@
+---
+title: Billing Package Overview
+description: Core billing package for electronic invoicing in Chile with LibreDTE
+---
+
+The Billing Package is the central component of LibreDTE Core, providing functionality for creating, sending, and querying electronic tax documents (DTE) in Chile.
+
+## Package Components
+
+The billing package (`billing`) contains seven specialized components:
+
+<CardGroup cols={2}>
+  <Card title="Document" icon="file-invoice" href="/api/billing/document-component">
+    Create, manipulate, and render tax documents
+  </Card>
+  
+  <Card title="Integration" icon="plug" href="/api/billing/integration-component">
+    Integrate with SII (Servicio de Impuestos Internos)
+  </Card>
+  
+  <Card title="Exchange" icon="exchange" href="/api/billing/exchange-component">
+    Send and receive tax documents
+  </Card>
+  
+  <Card title="Identifier" icon="hashtag" href="/api/billing/identifier-component">
+    Manage document folios (CAF)
+  </Card>
+  
+  <Card title="Book" icon="book" href="/api/billing/book-component">
+    Sales and purchase books management
+  </Card>
+  
+  <Card title="Trading Parties" icon="users" href="/api/billing/trading-parties-component">
+    Manage issuers, receivers, and commercial parties
+  </Card>
+  
+  <Card title="Ownership Transfer" icon="truck" href="/api/billing/ownership-transfer-component">
+    Handle ownership transfer documents
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+The BillingPackage class provides access to all components:
+
+```php
+use libredte\lib\Core\Package\Billing\BillingPackage;
+
+// Access components through the package
+$documentComponent = $billingPackage->getDocumentComponent();
+$integrationComponent = $billingPackage->getIntegrationComponent();
+$exchangeComponent = $billingPackage->getExchangeComponent();
+```
+
+## Main Methods
+
+<ResponseField name="getComponents" type="array">
+  Returns an associative array of all available components with their keys:
+  - `book`: BookComponentInterface
+  - `document`: DocumentComponentInterface
+  - `exchange`: ExchangeComponentInterface
+  - `identifier`: IdentifierComponentInterface
+  - `integration`: IntegrationComponentInterface
+  - `ownership_transfer`: OwnershipTransferComponentInterface
+  - `trading_parties`: TradingPartiesComponentInterface
+</ResponseField>
+
+<ResponseField name="getBookComponent" type="BookComponentInterface">
+  Returns the book component for managing sales and purchase books
+</ResponseField>
+
+<ResponseField name="getDocumentComponent" type="DocumentComponentInterface">
+  Returns the document component for creating and managing tax documents
+</ResponseField>
+
+<ResponseField name="getExchangeComponent" type="ExchangeComponentInterface">
+  Returns the exchange component for sending and receiving documents
+</ResponseField>
+
+<ResponseField name="getIdentifierComponent" type="IdentifierComponentInterface">
+  Returns the identifier component for managing folios (CAF)
+</ResponseField>
+
+<ResponseField name="getIntegrationComponent" type="IntegrationComponentInterface">
+  Returns the integration component for SII communication
+</ResponseField>
+
+<ResponseField name="getOwnershipTransferComponent" type="OwnershipTransferComponentInterface">
+  Returns the ownership transfer component
+</ResponseField>
+
+<ResponseField name="getTradingPartiesComponent" type="TradingPartiesComponentInterface">
+  Returns the trading parties component for managing commercial entities
+</ResponseField>
+
+## Architecture
+
+The billing package follows a component-based architecture where each component:
+
+- Implements a specific domain responsibility
+- Contains multiple workers that handle specific tasks
+- Provides a clean interface for accessing functionality
+- Can be used independently or in combination with other components
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\BillingPackage`
+
+Location: `/workspace/source/src/Package/Billing/BillingPackage.php:54`

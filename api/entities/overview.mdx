@@ -1,0 +1,312 @@
+---
+title: Entidades de Documentos
+description: Descripción general de las entidades del sistema de documentación tributaria
+---
+
+LibreDTE Core proporciona un conjunto de entidades para trabajar con documentos tributarios electrónicos y sus elementos relacionados. Estas entidades representan los diferentes aspectos del sistema de facturación electrónica chileno.
+
+## Entidades Principales
+
+### TipoDocumento
+
+La entidad central que representa un tipo de documento tributario.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\TipoDocumento;
+```
+
+**Propiedades principales:**
+- `codigo`: Código oficial del SII (int|string)
+- `nombre`: Nombre completo del documento
+- `nombre_corto`: Nombre corto del documento
+- `categoria`: Categoría del documento (CategoriaDocumento enum)
+- `electronico`: Si es un documento electrónico (bool)
+- `enviar`: Si se debe enviar al SII (bool)
+- `compra`: Si está disponible para compras (bool)
+- `venta`: Si está disponible para ventas (bool)
+- `operacion`: Tipo de operación en libros (OperacionDocumento enum)
+- `cedible`: Si el documento puede ser cedido (bool)
+- `tag_xml`: Tag XML del documento (TagXmlDocumento enum)
+- `alias`: Código técnico interno
+- `interface`: Interfaz PHP asociada
+
+**Métodos destacados:**
+- `getCodigo()`: Obtiene el código del documento
+- `getNombre()`: Obtiene el nombre completo
+- `getNombreCorto()`: Obtiene el nombre corto
+- `esElectronico()`: Verifica si es electrónico
+- `seEnviaAlSii()`: Verifica si se envía al SII
+- `esGuiaDespacho()`: Verifica si es guía de despacho
+- `esBoleta()`: Verifica si es boleta
+- `esExportacion()`: Verifica si es documento de exportación
+- `esExento()`: Verifica si es documento exento
+- `getDefaultTasaIVA()`: Obtiene la tasa de IVA por defecto
+
+**Ejemplo:**
+```php
+$tipoDoc = new TipoDocumento(33, 'Factura electrónica', 'Factura');
+
+if ($tipoDoc->esElectronico() && $tipoDoc->seEnviaAlSii()) {
+    echo "Este documento debe ser enviado al SII\n";
+}
+
+$tasa = $tipoDoc->getDefaultTasaIVA();
+if ($tasa !== false) {
+    echo "Tasa de IVA: {$tasa}%\n";
+}
+```
+
+## Entidades de Configuración
+
+### FormaPago
+
+Representa una forma de pago utilizada en los documentos.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\FormaPago;
+```
+
+Extiende de `Derafu\Repository\Entity` y proporciona acceso a los atributos de configuración de formas de pago.
+
+**Ejemplo:**
+```php
+$formaPago = new FormaPago();
+echo $formaPago; // Imprime la glosa de la forma de pago
+```
+
+### MedioPago
+
+Representa un medio de pago específico.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\MedioPago;
+```
+
+Similar a FormaPago, extiende de `Derafu\Repository\Entity`.
+
+**Ejemplo:**
+```php
+$medioPago = new MedioPago();
+echo $medioPago; // Imprime la glosa del medio de pago
+```
+
+### FormaPagoExportacion
+
+Forma de pago específica para documentos de exportación.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\FormaPagoExportacion;
+```
+
+### ImpuestoAdicionalRetencion
+
+Representa impuestos adicionales y retenciones aplicables a los documentos.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\ImpuestoAdicionalRetencion;
+```
+
+## Entidades de Despacho y Logística
+
+### Traslado
+
+Información sobre el traslado de mercancías en guías de despacho.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Traslado;
+```
+
+### SobreEnvio
+
+Representa el sobre de envío de documentos electrónicos al SII.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\SobreEnvio;
+```
+
+### TagXml
+
+Define los tags XML utilizados en los documentos electrónicos.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\TagXml;
+```
+
+## Entidades Geográficas
+
+### Comuna
+
+Representa las comunas (municipios) de Chile.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Comuna;
+```
+
+## Entidades de Aduana (Exportación)
+
+Para documentos de exportación, se incluyen varias entidades relacionadas con trámites aduaneros:
+
+### AduanaUnidad
+
+Unidades de medida para comercio internacional.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaUnidad;
+```
+
+### AduanaTransporte
+
+Medios de transporte internacional.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaTransporte;
+```
+
+### AduanaTipoBulto
+
+Tipos de bultos o embalajes.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaTipoBulto;
+```
+
+### AduanaPuerto
+
+Puertos de embarque/desembarque.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaPuerto;
+```
+
+### AduanaPais
+
+Países para operaciones de exportación.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaPais;
+```
+
+### AduanaMoneda
+
+Monedas utilizadas en operaciones internacionales.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaMoneda;
+```
+
+### AduanaModalidadVenta
+
+Modalidades de venta internacional.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaModalidadVenta;
+```
+
+### AduanaFormaPago
+
+Formas de pago para operaciones de exportación.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaFormaPago;
+```
+
+### AduanaClausulaVenta
+
+Cláusulas de venta internacional (INCOTERMS).
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\AduanaClausulaVenta;
+```
+
+## Entidades de Documentos Específicos
+
+Cada tipo de documento tributario tiene su propia entidad:
+
+### Facturas
+
+- **FacturaAfecta**: Factura electrónica afecta a IVA (código 33)
+- **FacturaExenta**: Factura exenta de IVA (código 34)
+- **FacturaCompra**: Factura de compra electrónica (código 46)
+- **FacturaExportacion**: Factura de exportación (código 110)
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\FacturaAfecta;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\FacturaExenta;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\FacturaCompra;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\FacturaExportacion;
+```
+
+### Boletas
+
+- **BoletaAfecta**: Boleta electrónica afecta a IVA (código 39)
+- **BoletaExenta**: Boleta exenta de IVA (código 41)
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\BoletaAfecta;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\BoletaExenta;
+```
+
+### Notas
+
+- **NotaCredito**: Nota de crédito electrónica (código 61)
+- **NotaDebito**: Nota de débito electrónica (código 56)
+- **NotaCreditoExportacion**: Nota de crédito de exportación (código 112)
+- **NotaDebitoExportacion**: Nota de débito de exportación (código 111)
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\NotaCredito;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\NotaDebito;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\NotaCreditoExportacion;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\NotaDebitoExportacion;
+```
+
+### Otros Documentos
+
+- **GuiaDespacho**: Guía de despacho electrónica (código 52)
+- **LiquidacionFactura**: Liquidación factura electrónica (código 43)
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\GuiaDespacho;
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\Document\LiquidacionFactura;
+```
+
+## Patrón de Repositorio
+
+Las entidades utilizan el patrón de repositorio de Derafu. Por ejemplo, TipoDocumento tiene asociado un repositorio:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Repository\TipoDocumentoRepository;
+
+// El repositorio permite consultar y persistir entidades
+$repository = $entityManager->getRepository(TipoDocumento::class);
+$factura = $repository->findByCodigo(33);
+```
+
+## Uso con Enums
+
+Las entidades trabajan estrechamente con los enums del sistema:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Entity\TipoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CategoriaDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\OperacionDocumento;
+
+$tipoDoc = new TipoDocumento(33, 'Factura electrónica');
+
+// Las categorías y operaciones se asignan como enums
+if ($tipoDoc->getCategoria() === CategoriaDocumento::TRIBUTARIO) {
+    echo "Documento tributario\n";
+}
+
+if ($tipoDoc->getOperacion() === OperacionDocumento::SUMA) {
+    echo "Este documento suma en los libros\n";
+}
+```
+
+## Notas Importantes
+
+- Todas las entidades están diseñadas para cumplir con la normativa del SII de Chile
+- Las entidades de documentos implementan interfaces específicas para garantizar consistencia
+- El sistema utiliza Doctrine ORM a través de Derafu Repository para la persistencia
+- Las entidades de aduana son relevantes solo para documentos de exportación (códigos 110, 111, 112)
+- TipoDocumento es la entidad central que coordina con todos los enums y otras entidades

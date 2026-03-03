@@ -1,0 +1,160 @@
+---
+title: Normalizer Worker
+description: Normalize and standardize tax document data according to regulations
+---
+
+The Normalizer Worker standardizes tax document data to ensure compliance with regulatory requirements and consistent formatting.
+
+## Overview
+
+The Normalizer Worker processes document data to:
+
+- Apply regulatory formatting rules
+- Complete missing optional fields with defaults
+- Standardize data representations
+- Ensure compliance with tax authority requirements
+
+## Methods
+
+### normalize
+
+Normalizes tax document data to regulatory standards.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the document data to normalize.
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Normalized document data array.
+</ResponseField>
+
+**Throws:** `NormalizerException` if normalization fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$normalizer = $documentComponent->getNormalizerWorker();
+
+// Normalize the document data
+$normalizedData = $normalizer->normalize($bag);
+```
+
+## Accessing the Normalizer Worker
+
+Access the Normalizer Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$normalizer = $documentComponent->getNormalizerWorker();
+```
+
+## Usage Example
+
+Manual normalization workflow:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\NormalizerException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Create a bag with document data
+$bag = new DocumentBag(
+    inputData: [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '87654321-0']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product 1', 'PrcItem' => 1000]
+        ]
+    ],
+    options: []
+);
+
+// Normalize the data
+try {
+    $normalizer = $documentComponent->getNormalizerWorker();
+    $normalizedData = $normalizer->normalize($bag);
+    
+    // $normalizedData contains standardized, compliant data
+    print_r($normalizedData);
+} catch (NormalizerException $e) {
+    echo "Normalization failed: " . $e->getMessage();
+}
+```
+
+## Normalization Operations
+
+The Normalizer performs various standardization operations:
+
+### Data Formatting
+
+- RUT formatting (Chilean tax ID)
+- Date and time standardization
+- Numeric precision adjustments
+- Currency formatting
+
+### Field Completion
+
+- Default values for optional fields
+- Calculated totals and subtotals
+- Tax rate applications
+- Reference number formatting
+
+### Compliance Checks
+
+- Field length validations
+- Required field presence
+- Data type conformance
+- Regulatory rule application
+
+## Example Transformations
+
+Before normalization:
+```php
+[
+    'Encabezado' => [
+        'Emisor' => [
+            'RUTEmisor' => '123456789',  // Missing check digit
+        ]
+    ],
+    'Detalle' => [
+        ['PrcItem' => 1000]  // Missing quantity
+    ]
+]
+```
+
+After normalization:
+```php
+[
+    'Encabezado' => [
+        'Emisor' => [
+            'RUTEmisor' => '12345678-9',  // Formatted with check digit
+        ]
+    ],
+    'Detalle' => [
+        [
+            'PrcItem' => 1000,
+            'QtyItem' => 1  // Default quantity added
+        ]
+    ]
+]
+```
+
+## Strategy Pattern
+
+The Normalizer Worker implements `StrategiesAwareInterface`, allowing different normalization strategies for:
+
+- Various document types (invoices, credit notes, etc.)
+- Different tax regimes
+- Regional variations
+- Industry-specific requirements

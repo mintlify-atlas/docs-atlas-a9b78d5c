@@ -1,0 +1,193 @@
+---
+title: 'Factura de Exportación (Code 110)'
+description: 'Electronic export invoice and related documents for international sales from Chile'
+---
+
+## Overview
+
+The **Factura de Exportación** and related export documents are used for international sales transactions where goods or services are exported from Chile. LibreDTE Core supports three export document types.
+
+## Factura de Exportación (Code 110)
+
+<Note>
+**Official Name:** Factura de exportación electrónica  
+**Document Code:** 110  
+**Enum Constant:** `CodigoDocumento::FACTURA_EXPORTACION`  
+**Interface:** `FacturaExportacionInterface`
+</Note>
+
+### When to Use
+
+Use a Factura de Exportación when:
+
+- Selling goods or services to customers outside of Chile
+- Exporting products internationally
+- The transaction qualifies for export tax treatment
+- Required documentation for customs and international shipping
+- VAT exemption applies due to export status
+
+### Code Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\FacturaExportacionInterface;
+
+// Access the document type
+$documentType = CodigoDocumento::FACTURA_EXPORTACION;
+
+// Get document code
+$codigo = $documentType->getCodigo(); // 110
+
+// Get document name
+$nombre = $documentType->getNombre(); // "Factura de exportación electrónica"
+
+// Get short name
+$nombreCorto = $documentType->getNombreCorto(); // "Factura de exportación"
+
+// Get alias
+$alias = $documentType->getAlias(); // "factura_exportacion"
+
+// Get interface class
+$interface = $documentType->getInterface(); // FacturaExportacionInterface::class
+```
+
+## Export Adjustment Documents
+
+LibreDTE Core also supports adjustment documents for export transactions:
+
+### Nota de Débito de Exportación (Code 111)
+
+<Note>
+**Official Name:** Nota de débito de exportación electrónica  
+**Document Code:** 111  
+**Enum Constant:** `CodigoDocumento::NOTA_DEBITO_EXPORTACION`  
+**Interface:** `NotaDebitoExportacionInterface`
+</Note>
+
+Used to increase the amount on a previously issued export invoice.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\NotaDebitoExportacionInterface;
+
+$documentType = CodigoDocumento::NOTA_DEBITO_EXPORTACION;
+$codigo = $documentType->getCodigo(); // 111
+$nombre = $documentType->getNombre(); // "Nota de débito de exportación electrónica"
+$alias = $documentType->getAlias(); // "nota_debito_exportacion"
+```
+
+### Nota de Crédito de Exportación (Code 112)
+
+<Note>
+**Official Name:** Nota de crédito de exportación electrónica  
+**Document Code:** 112  
+**Enum Constant:** `CodigoDocumento::NOTA_CREDITO_EXPORTACION`  
+**Interface:** `NotaCreditoExportacionInterface`
+</Note>
+
+Used to decrease the amount on a previously issued export invoice.
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Enum\CodigoDocumento;
+use libredte\lib\Core\Package\Billing\Component\Document\Contract\Document\NotaCreditoExportacionInterface;
+
+$documentType = CodigoDocumento::NOTA_CREDITO_EXPORTACION;
+$codigo = $documentType->getCodigo(); // 112
+$nombre = $documentType->getNombre(); // "Nota de crédito de exportación electrónica"
+$alias = $documentType->getAlias(); // "nota_credito_exportacion"
+```
+
+## Document Properties
+
+### Factura de Exportación (110)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `110`
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Full document name: "Factura de exportación electrónica"
+</ParamField>
+
+<ParamField path="nombreCorto" type="string" required>
+  Short name: "Factura de exportación"
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "factura_exportacion"
+</ParamField>
+
+### Nota de Débito Exportación (111)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `111`
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "nota_debito_exportacion"
+</ParamField>
+
+### Nota de Crédito Exportación (112)
+
+<ParamField path="codigo" type="int" required>
+  Document code: `112`
+</ParamField>
+
+<ParamField path="alias" type="string" required>
+  Programmatic alias: "nota_credito_exportacion"
+</ParamField>
+
+## Key Characteristics
+
+- **Tax Treatment**: Export documents are generally exempt from VAT
+- **Currency**: Can be issued in foreign currencies
+- **Customs Integration**: Required for international shipping and customs clearance
+- **International Standards**: Must comply with both Chilean tax law and international trade requirements
+
+## Comparison: Export vs Domestic Documents
+
+| Feature | Factura Exportación (110) | Factura Afecta (33) |
+|---------|---------------------------|---------------------|
+| Target Market | International | Domestic |
+| VAT Application | Exempt | Taxable |
+| Currency | Foreign or CLP | CLP |
+| Customs Use | Required | Not applicable |
+| Document Code | 110 | 33 |
+
+## Related Document Types
+
+- **Factura Afecta (33)**: Domestic taxable invoice
+- **Factura Exenta (34)**: Domestic tax-exempt invoice
+- **Nota de Crédito (61)**: Domestic credit note
+- **Nota de Débito (56)**: Domestic debit note
+- **Guía de Despacho (52)**: Delivery guide (can be used with exports)
+
+## Implementation
+
+All export document types implement their respective interfaces:
+
+```php
+namespace libredte\lib\Core\Package\Billing\Component\Document\Contract\Document;
+
+interface FacturaExportacionInterface extends DocumentInterface
+{
+    // Export invoice specific methods
+}
+
+interface NotaDebitoExportacionInterface extends DocumentInterface
+{
+    // Export debit note specific methods
+}
+
+interface NotaCreditoExportacionInterface extends DocumentInterface
+{
+    // Export credit note specific methods
+}
+```
+
+## Use Cases
+
+1. **Manufacturing Export**: Chilean manufacturer selling products to international distributors
+2. **Service Export**: Software company providing services to foreign clients
+3. **E-commerce Export**: Online store shipping products internationally
+4. **Professional Services**: Consulting or professional services rendered to foreign entities

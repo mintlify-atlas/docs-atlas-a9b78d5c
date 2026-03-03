@@ -1,0 +1,104 @@
+---
+title: Builder Worker
+description: Build tax documents from input data with optional stamping and signing
+---
+
+The Builder Worker is responsible for constructing tax documents (DTEs) from input data. It can generate drafts, stamped documents with CAF, or fully signed documents with a digital certificate.
+
+## Overview
+
+The Builder Worker transforms parsed document data into complete tax document structures. Depending on what's provided (CAF, certificate), it generates:
+
+- **Draft**: Only input data provided
+- **Stamped document**: Includes real folio and CAF
+- **Stamped and signed document**: Includes CAF and digital certificate
+
+## Methods
+
+### build
+
+Builds a tax document with the provided data.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the document data to build. Includes input data, options, and optionally CAF and certificate.
+</ParamField>
+
+<ResponseField name="return" type="DocumentInterface">
+  The constructed tax document instance.
+</ResponseField>
+
+**Throws:** `BuilderException` if document construction fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$builder = $documentComponent->getBuilderWorker();
+
+// Build the document from a bag
+$document = $builder->build($bag);
+```
+
+### create
+
+Creates a DTE instance from the XmlDocument contained in the bag.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with an XmlDocument to convert into a DocumentInterface.
+</ParamField>
+
+<ResponseField name="return" type="DocumentInterface">
+  The created tax document instance.
+</ResponseField>
+
+```php
+// Create a document instance from XML in the bag
+$document = $builder->create($bag);
+```
+
+## Accessing the Builder Worker
+
+Access the Builder Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$builder = $documentComponent->getBuilderWorker();
+```
+
+## Usage Example
+
+Complete example of building a signed tax document:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Use the high-level bill() method which uses Builder internally
+$bag = $documentComponent->bill(
+    data: [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '87654321-0']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product 1', 'PrcItem' => 1000]
+        ]
+    ],
+    caf: '/path/to/caf.xml',
+    certificate: '/path/to/certificate.pfx'
+);
+
+// Access the built document
+$document = $bag->getDocument();
+```
+
+## Strategy Pattern
+
+The Builder Worker implements `StrategiesAwareInterface`, allowing different building strategies for various document types.

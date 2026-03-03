@@ -1,0 +1,413 @@
+---
+title: Troubleshooting
+description: Solutions to common issues and errors when using LibreDTE Core library.
+---
+
+## Overview
+
+This guide helps you diagnose and resolve common issues with LibreDTE Core.
+
+## Certificate Issues
+
+### Certificate Loading Fails
+
+<Accordion title="Error: Cannot load certificate file">
+  **Problem:** The certificate file cannot be loaded or the password is incorrect.
+
+  **Solution:**
+  
+  1. Verify the certificate file exists:
+     ```bash
+     ls -la /path/to/certificate.pfx
+     ```
+
+  2. Check file permissions:
+     ```bash
+     chmod 600 /path/to/certificate.pfx
+     ```
+
+  3. Verify the password is correct:
+     ```php
+     use Derafu\Certificate\Service\CertificateLoader;
+     use Derafu\Certificate\Exception\CertificateException;
+
+     try {
+         $certificateLoader = new CertificateLoader();
+         $certificate = $certificateLoader->loadFromFile(
+             '/path/to/certificate.pfx',
+             'your-password'
+         );
+     } catch (CertificateException $e) {
+         echo "Error: " . $e->getMessage();
+     }
+     ```
+
+  4. Ensure OpenSSL extension is installed:
+     ```bash
+     php -m | grep openssl
+     ```
+</Accordion>
+
+<Accordion title="Error: Certificate expired">
+  **Problem:** The digital certificate has expired.
+
+  **Solution:**
+  
+  1. Check certificate expiration date:
+     ```php
+     $expirationDate = $certificate->getExpirationDate();
+     echo "Certificate expires on: " . $expirationDate->format('Y-m-d');
+     ```
+
+  2. Obtain a new certificate from your certification authority
+  
+  3. Update your certificate file path in your configuration
+</Accordion>
+
+<Accordion title="Error: Certificate does not match RUT">
+  **Problem:** The certificate RUT doesn't match the emisor RUT.
+
+  **Solution:**
+  
+  Ensure the certificate belongs to the correct taxpayer:
+  
+  ```php
+  $certificateRut = $certificate->getId();
+  $emisorRut = $emisor->getRUT();
+  
+  if ($certificateRut !== $emisorRut) {
+      throw new Exception("Certificate RUT mismatch");
+  }
+  ```
+</Accordion>
+
+## CAF (Folio) Issues
+
+### CAF Validation Errors
+
+<Accordion title="Error: Invalid CAF signature">
+  **Problem:** CAF signature validation fails.
+
+  **Solution:**
+  
+  1. Verify the CAF XML file is not corrupted:
+     ```bash
+     cat /path/to/caf.xml
+     ```
+
+  2. Download a fresh CAF from SII
+  
+  3. Ensure the CAF matches the document type:
+     ```php
+     $cafTipo = $cafBag->getTipoDocumento()->getCodigo();
+     $docTipo = $data['Encabezado']['IdDoc']['TipoDTE'];
+     
+     if ($cafTipo !== $docTipo) {
+         throw new Exception("CAF type mismatch");
+     }
+     ```
+</Accordion>
+
+<Accordion title="Error: Folio out of range">
+  **Problem:** The requested folio is not within the CAF range.
+
+  **Solution:**
+  
+  1. Check the CAF range:
+     ```php
+     echo "CAF range: " . $caf->getFolioDesde() . " - " . $caf->getFolioHasta();
+     ```
+
+  2. Request a new CAF range from SII if folios are exhausted
+  
+  3. Use a folio within the valid range:
+     ```php
+     $folio = $caf->getFolioDesde(); // Start from first available
+     ```
+</Accordion>
+
+<Accordion title="Error: CAF RUT does not match Emisor">
+  **Problem:** The CAF was issued for a different taxpayer.
+
+  **Solution:**
+  
+  Verify RUT consistency:
+  
+  ```php
+  $cafRut = $caf->getEmisor()['rut'];
+  $emisorRut = $emisor->getRUT();
+  
+  if ($cafRut !== $emisorRut) {
+      throw new Exception("CAF does not belong to this emisor");
+  }
+  ```
+</Accordion>
+
+## SII Integration Issues
+
+### Authentication Failures
+
+<Accordion title="Error: SII authentication timeout">
+  **Problem:** Connection to SII authentication service times out.
+
+  **Solution:**
+  
+  1. Check internet connectivity:
+     ```bash
+     ping sii.cl
+     ```
+
+  2. Verify firewall allows HTTPS connections to SII
+  
+  3. Check if SII services are operational: [SII Status](https://www.sii.cl)
+  
+  4. Increase timeout in your HTTP client configuration
+</Accordion>
+
+<Accordion title="Error: Invalid token">
+  **Problem:** Authentication token is rejected by SII.
+
+  **Solution:**
+  
+  1. Request a fresh token:
+     ```php
+     $token = $siiLazyWorker->authenticate(new SiiRequest($certificate));
+     ```
+
+  2. Ensure your certificate is valid and not expired
+  
+  3. Verify you're using the correct environment (certification vs production)
+</Accordion>
+
+<Accordion title="Error: SOAP error">
+  **Problem:** SOAP webservice communication fails.
+
+  **Solution:**
+  
+  1. Verify SOAP extension is installed:
+     ```bash
+     php -m | grep soap
+     ```
+
+  2. Enable SOAP error reporting:
+     ```php
+     ini_set('soap.wsdl_cache_enabled', 0);
+     ini_set('soap.wsdl_cache_ttl', 0);
+     ```
+
+  3. Check SII webservice URLs are accessible
+</Accordion>
+
+### Document Sending Failures
+
+<Accordion title="Error: Document rejected by SII">
+  **Problem:** SII rejects the submitted document.
+
+  **Solution:**
+  
+  1. Validate the XML schema before sending:
+     ```php
+     $validator->validateSchema($xml);
+     ```
+
+  2. Check SII error response for specific rejection reasons
+  
+  3. Verify document signature:
+     ```php
+     $validator->validateSignature($xml);
+     ```
+
+  4. Ensure all required fields are present and valid
+</Accordion>
+
+<Accordion title="Error: Track ID not found">
+  **Problem:** Cannot retrieve document status using track ID.
+
+  **Solution:**
+  
+  1. Wait a few minutes - SII processing may be delayed
+  
+  2. Verify you're using the correct track ID
+  
+  3. Check the correct environment (certification vs production)
+  
+  4. Verify the track ID belongs to your RUT
+</Accordion>
+
+## PHP Extension Issues
+
+### Missing Extensions
+
+<Warning>
+  LibreDTE Core requires specific PHP extensions. Missing extensions will cause runtime errors.
+</Warning>
+
+<Accordion title="Error: ext-openssl not found">
+  **Problem:** OpenSSL extension is not installed.
+
+  **Solution:**
+  
+  Install the extension based on your OS:
+  
+  **Ubuntu/Debian:**
+  ```bash
+  sudo apt-get install php8.5-openssl
+  sudo systemctl restart php8.5-fpm
+  ```
+
+  **CentOS/RHEL:**
+  ```bash
+  sudo yum install php-openssl
+  sudo systemctl restart php-fpm
+  ```
+
+  **macOS:**
+  ```bash
+  brew install php@8.5
+  ```
+</Accordion>
+
+<Accordion title="Error: ext-soap not found">
+  **Problem:** SOAP extension is not installed.
+
+  **Solution:**
+  
+  **Ubuntu/Debian:**
+  ```bash
+  sudo apt-get install php8.5-soap
+  sudo systemctl restart php8.5-fpm
+  ```
+
+  **CentOS/RHEL:**
+  ```bash
+  sudo yum install php-soap
+  sudo systemctl restart php-fpm
+  ```
+</Accordion>
+
+<Accordion title="Error: ext-curl not found">
+  **Problem:** cURL extension is not installed.
+
+  **Solution:**
+  
+  **Ubuntu/Debian:**
+  ```bash
+  sudo apt-get install php8.5-curl
+  sudo systemctl restart php8.5-fpm
+  ```
+
+  **CentOS/RHEL:**
+  ```bash
+  sudo yum install php-curl
+  sudo systemctl restart php-fpm
+  ```
+</Accordion>
+
+## Document Generation Issues
+
+### XML Validation Errors
+
+<Accordion title="Error: XML schema validation failed">
+  **Problem:** Generated XML doesn't match SII schema.
+
+  **Solution:**
+  
+  1. Validate data before building:
+     ```php
+     // Ensure all required fields are present
+     if (!isset($data['Encabezado']['IdDoc']['TipoDTE'])) {
+         throw new Exception("TipoDTE is required");
+     }
+     ```
+
+  2. Check for invalid characters in text fields
+  
+  3. Verify numeric fields contain valid numbers
+  
+  4. Review SII documentation for field requirements
+</Accordion>
+
+<Accordion title="Error: PDF generation fails">
+  **Problem:** Cannot render document to PDF.
+
+  **Solution:**
+  
+  1. Ensure mPDF or TCPDF is installed:
+     ```bash
+     composer show mpdf/mpdf
+     composer show tecnickcom/tcpdf
+     ```
+
+  2. Check memory limit:
+     ```php
+     ini_set('memory_limit', '256M');
+     ```
+
+  3. Verify write permissions on temp directory
+</Accordion>
+
+## Performance Issues
+
+<Accordion title="Slow document generation">
+  **Problem:** Document creation takes too long.
+
+  **Solution:**
+  
+  1. Enable OPcache:
+     ```ini
+     opcache.enable=1
+     opcache.memory_consumption=128
+     opcache.interned_strings_buffer=8
+     ```
+
+  2. Use caching for repeated operations:
+     ```php
+     use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+     
+     $cache = new FilesystemAdapter();
+     ```
+
+  3. Optimize autoloading:
+     ```bash
+     composer dump-autoload --optimize
+     ```
+</Accordion>
+
+## Debug Mode
+
+### Enable Detailed Error Messages
+
+<Note>
+  Enable debug mode during development to get detailed error information.
+</Note>
+
+```php
+// Enable error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Enable exception traces
+set_exception_handler(function($exception) {
+    echo $exception->getMessage() . "\n";
+    echo $exception->getTraceAsString();
+});
+```
+
+## Getting Help
+
+If you can't resolve your issue:
+
+1. Check the [FAQ](/resources/faq) for common questions
+2. Review the [Examples](/resources/examples) for working code
+3. Search [GitHub Issues](https://github.com/libredte/libredte-lib-core/issues)
+4. Create a new issue with:
+   - PHP version (`php -v`)
+   - LibreDTE Core version
+   - Complete error message
+   - Minimal code to reproduce the issue
+
+## Related Resources
+
+- [Migration Guide](/resources/migration-guide)
+- [API Reference](/api/billing/overview)
+- [Contributing Guide](/resources/contributing)

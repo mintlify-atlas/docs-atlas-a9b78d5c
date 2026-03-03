@@ -1,0 +1,124 @@
+---
+title: Parser Worker
+description: Parse and transform input data into standardized tax document format
+---
+
+The Parser Worker transforms raw input data into the standardized format required for tax document construction.
+
+## Overview
+
+The Parser Worker handles the initial data transformation stage, converting various input formats (arrays, JSON, objects) into the structured array format needed by the document builder.
+
+## Methods
+
+### parse
+
+Transforms document input data into a standardized format.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the input data to transform. The bag contains the raw data provided by the user.
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Standardized array with the parsed document data.
+</ResponseField>
+
+**Throws:** `ParserException` if parsing fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$parser = $documentComponent->getParserWorker();
+
+// Parse the input data
+$parsedData = $parser->parse($bag);
+```
+
+## Accessing the Parser Worker
+
+Access the Parser Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$parser = $documentComponent->getParserWorker();
+```
+
+## Usage Example
+
+The Parser Worker is automatically used by the `bill()` method:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Input data in various formats
+$jsonData = json_encode([
+    'Encabezado' => [
+        'IdDoc' => ['TipoDTE' => 33],
+        'Emisor' => ['RUTEmisor' => '12345678-9'],
+    ]
+]);
+
+// Create a bag with the input data
+$bag = new DocumentBag(
+    inputData: $jsonData,
+    options: []
+);
+
+// Parse the data
+$parser = $documentComponent->getParserWorker();
+$parsedData = $parser->parse($bag);
+
+// $parsedData now contains standardized array format
+```
+
+## Input Format Support
+
+The Parser Worker can handle multiple input formats:
+
+- **Arrays**: Native PHP arrays with document data
+- **JSON strings**: JSON-encoded document data
+- **stdClass objects**: Object notation of document data
+
+## Parsing Process
+
+The parser performs these transformations:
+
+1. **Format detection**: Identifies the input data type
+2. **Conversion**: Converts to standard array format
+3. **Structure validation**: Ensures basic structure requirements
+4. **Data extraction**: Extracts relevant fields for document construction
+
+## Integration with Document Pipeline
+
+The Parser Worker is the first step in the document creation pipeline:
+
+```php
+// The bill() method uses Parser internally:
+$bag = $documentComponent->bill(
+    data: $inputData,  // Any supported format
+    caf: $caf,
+    certificate: $certificate
+);
+
+// Internally, this executes:
+// 1. Parser: parse($bag)
+// 2. Builder: build($bag)
+```
+
+## Strategy Pattern
+
+The Parser Worker implements `StrategiesAwareInterface`, allowing different parsing strategies for:
+
+- Various input formats (JSON, XML, arrays)
+- Different document types
+- Custom data structures
+- Legacy format support

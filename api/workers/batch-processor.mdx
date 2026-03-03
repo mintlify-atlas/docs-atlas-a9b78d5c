@@ -1,0 +1,225 @@
+---
+title: Batch Processor Worker
+description: Process multiple tax documents in batches for efficient bulk operations
+---
+
+The Batch Processor Worker handles the mass processing of tax documents, enabling efficient creation of multiple documents in a single operation.
+
+## Overview
+
+The Batch Processor Worker provides:
+
+- Bulk document processing
+- Efficient resource utilization
+- Batch error handling
+- Mass document generation
+
+## Methods
+
+### process
+
+Processes multiple tax documents in a batch.
+
+<ParamField path="batch" type="DocumentBatchInterface" required>
+  Container with the batch of documents to process.
+</ParamField>
+
+<ResponseField name="return" type="DocumentBagInterface[]">
+  Array of document bags, one for each processed document.
+</ResponseField>
+
+**Throws:** `BatchProcessorException` if batch processing fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$batchProcessor = $documentComponent->getBatchProcessorWorker();
+
+// Process a batch of documents
+$documentBags = $batchProcessor->process($batch);
+```
+
+## Accessing the Batch Processor Worker
+
+Access the Batch Processor Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$batchProcessor = $documentComponent->getBatchProcessorWorker();
+```
+
+## Usage Example
+
+Batch processing multiple invoices:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\BatchProcessorException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Prepare multiple documents
+$documents = [
+    [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33, 'Folio' => 1001],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '87654321-0']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product A', 'PrcItem' => 1000]
+        ]
+    ],
+    [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33, 'Folio' => 1002],
+            'Emisor' => ['RUTEmisor' => '12345678-9'],
+            'Receptor' => ['RUTRecep' => '11111111-1']
+        ],
+        'Detalle' => [
+            ['NmbItem' => 'Product B', 'PrcItem' => 2000]
+        ]
+    ],
+    // ... more documents
+];
+
+// Create a batch
+$batch = new DocumentBatch(
+    documents: $documents,
+    caf: '/path/to/caf.xml',
+    certificate: '/path/to/certificate.pfx',
+    options: []
+);
+
+// Process the batch
+try {
+    $batchProcessor = $documentComponent->getBatchProcessorWorker();
+    $results = $batchProcessor->process($batch);
+    
+    // Handle results
+    foreach ($results as $index => $bag) {
+        $document = $bag->getDocument();
+        echo "Document {$index}: Folio " . $document->getFolio() . " created\n";
+        
+        // Save or process each document
+        $xmlData = $document->toXml();
+        file_put_contents("/path/to/docs/doc_{$index}.xml", $xmlData);
+    }
+    
+    echo "Processed " . count($results) . " documents successfully";
+} catch (BatchProcessorException $e) {
+    echo "Batch processing failed: " . $e->getMessage();
+}
+```
+
+## Batch Configuration
+
+When creating a batch, you can share common settings:
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBatch;
+
+$batch = new DocumentBatch(
+    documents: $documentsArray,
+    caf: $cafInstance,              // Shared CAF for all documents
+    certificate: $certificate,       // Shared certificate for signing
+    options: [
+        'parallel' => true,          // Enable parallel processing
+        'fail_fast' => false,        // Continue on errors
+        'batch_size' => 100          // Process in chunks of 100
+    ]
+);
+```
+
+## Error Handling
+
+The Batch Processor can handle errors in different ways:
+
+### Fail Fast Mode
+
+```php
+// Stop on first error
+$batch = new DocumentBatch(
+    documents: $documents,
+    options: ['fail_fast' => true]
+);
+
+try {
+    $results = $batchProcessor->process($batch);
+} catch (BatchProcessorException $e) {
+    echo "Failed at document: " . $e->getDocumentIndex();
+}
+```
+
+### Collect All Errors
+
+```php
+// Process all documents, collect errors
+$batch = new DocumentBatch(
+    documents: $documents,
+    options: ['fail_fast' => false]
+);
+
+$results = $batchProcessor->process($batch);
+
+foreach ($results as $index => $bag) {
+    if ($bag->hasErrors()) {
+        echo "Document {$index} failed: " . $bag->getError();
+    } else {
+        echo "Document {$index} succeeded";
+    }
+}
+```
+
+## Performance Benefits
+
+Batch processing provides significant performance improvements:
+
+- **Resource reuse**: CAF and certificate loaded once
+- **Parallel processing**: Multiple documents processed simultaneously
+- **Optimized validation**: Schema loaded once for all documents
+- **Memory efficiency**: Streaming processing for large batches
+
+## Use Cases
+
+### Monthly Invoicing
+
+```php
+// Generate all monthly invoices at once
+$monthlyInvoices = getMonthlyInvoicesData();
+$batch = new DocumentBatch(documents: $monthlyInvoices);
+$results = $batchProcessor->process($batch);
+```
+
+### Bulk Credit Notes
+
+```php
+// Create credit notes for returns
+$creditNotes = getCreditNotesData();
+$batch = new DocumentBatch(documents: $creditNotes);
+$results = $batchProcessor->process($batch);
+```
+
+### Mass Document Migration
+
+```php
+// Migrate documents from legacy system
+$legacyDocuments = importFromLegacySystem();
+$batch = new DocumentBatch(documents: $legacyDocuments);
+$results = $batchProcessor->process($batch);
+```
+
+## Strategy Pattern
+
+The Batch Processor Worker implements `StrategiesAwareInterface`, allowing different processing strategies for:
+
+- Sequential vs parallel processing
+- Memory vs speed optimization
+- Different document types
+- Custom validation rules

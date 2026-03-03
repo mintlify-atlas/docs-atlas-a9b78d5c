@@ -1,0 +1,446 @@
+---
+title: Contributing Guide
+description: Learn how to contribute to LibreDTE Core and help improve electronic invoicing for Chile.
+---
+
+## Welcome Contributors
+
+Thank you for your interest in contributing to LibreDTE Core! This guide will help you understand how to contribute effectively.
+
+## Licensing and Terms
+
+<Warning>
+  All contributions must comply with the AGPL-3.0+ license and LibreDTE terms and conditions.
+</Warning>
+
+### License: AGPL-3.0+
+
+LibreDTE Core is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0+).
+
+By contributing, you agree that:
+
+1. Your contributions will be licensed under AGPL-3.0+
+2. You have the right to submit the code under this license
+3. Your code can be used, modified, and distributed by the project
+
+### Terms and Conditions
+
+<Note>
+  You must read and accept the complete [terms and conditions](https://core.libredte.cl/legal) before contributing.
+</Note>
+
+Key requirements:
+
+1. **Freedom to use, study, distribute, and change** - LibreDTE is free software
+2. **Share source code** - If you use LibreDTE in your software, you must release your source code under AGPL
+3. **Share modifications** - Any changes to LibreDTE must be released publicly under AGPL
+4. **Attribution** - You must publicly reference the LibreDTE project and original author
+
+The AGPL-3.0+ license **only applies** to those who respect the terms and conditions. There is **no commercial license** available.
+
+## Getting Started
+
+### Prerequisites
+
+Before contributing, ensure you have:
+
+- **PHP 8.5+** installed
+- **Composer** for dependency management
+- **Git** for version control
+- All required PHP extensions:
+  - ext-curl
+  - ext-json
+  - ext-mbstring
+  - ext-openssl
+  - ext-soap
+  - ext-xdebug (for code coverage)
+
+### Fork and Clone
+
+<Steps>
+  <Step title="Fork the Repository">
+    1. Visit [LibreDTE Core on GitHub](https://github.com/libredte/libredte-lib-core)
+    2. Click the "Fork" button
+    3. Clone your fork locally:
+    
+    ```bash
+    git clone https://github.com/YOUR-USERNAME/libredte-lib-core.git
+    cd libredte-lib-core
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install Composer dependencies:
+    
+    ```bash
+    composer install
+    ```
+  </Step>
+
+  <Step title="Create a Branch">
+    Create a feature branch for your changes:
+    
+    ```bash
+    git checkout -b feature/my-new-feature
+    ```
+  </Step>
+</Steps>
+
+## Development Workflow
+
+### Code Style
+
+LibreDTE Core follows strict PHP coding standards:
+
+#### Run PHP CS Fixer
+
+```bash
+# Check code style
+composer phpcs
+
+# Fix code style automatically
+composer phpcs-fix
+```
+
+#### Code Style Guidelines
+
+- Use **strict types**: `declare(strict_types=1);`
+- Follow **PSR-12** coding standard
+- Use **type hints** for all parameters and return types
+- Add **PHPDoc blocks** for all classes and methods
+- Keep methods **focused and small**
+- Use **meaningful variable names**
+
+Example:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace libredte\lib\Core\Package\Billing\Component\Example;
+
+/**
+ * Example class demonstrating code style.
+ */
+class ExampleClass
+{
+    /**
+     * Example method with proper type hints and documentation.
+     *
+     * @param string $input The input parameter
+     * @return string The processed result
+     */
+    public function exampleMethod(string $input): string
+    {
+        return strtoupper($input);
+    }
+}
+```
+
+### Static Analysis
+
+Run PHPStan for static code analysis:
+
+```bash
+# Analyze code
+composer phpstan
+
+# Generate baseline for existing issues
+composer phpstan-export
+```
+
+All code should pass PHPStan analysis at level 9.
+
+### Testing
+
+<Warning>
+  All new features and bug fixes must include tests.
+</Warning>
+
+#### Test Structure
+
+Tests are organized into three types:
+
+1. **Unit Tests** - Test individual classes in isolation
+2. **Functional Tests** - Test component functionality
+3. **Integration Tests** - Test SII integration (requires credentials)
+
+#### Running Tests
+
+```bash
+# Run all tests
+composer tests
+
+# Run unit tests only
+composer tests-unit
+
+# Run functional tests
+composer tests-functional
+
+# Run integration tests
+composer tests-integration
+```
+
+#### Writing Tests
+
+Test example:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace libredte\lib\Tests\Unit\Package\Billing\Component\Example;
+
+use libredte\lib\Tests\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+
+#[CoversClass(ExampleClass::class)]
+class ExampleTest extends TestCase
+{
+    public function testExampleMethod(): void
+    {
+        $example = new ExampleClass();
+        $result = $example->exampleMethod('test');
+        
+        $this->assertSame('TEST', $result);
+    }
+}
+```
+
+#### Code Coverage
+
+Strive for high test coverage:
+
+```bash
+# Generate coverage report
+XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-html coverage/
+```
+
+Target: **80%+ code coverage** for new code.
+
+## Contribution Guidelines
+
+### What to Contribute
+
+We welcome contributions in these areas:
+
+- **Bug fixes** - Fix reported issues
+- **New features** - Add new functionality
+- **Documentation** - Improve docs and examples
+- **Tests** - Increase test coverage
+- **Performance** - Optimize existing code
+- **Refactoring** - Improve code quality
+
+### What Not to Contribute
+
+- Breaking changes without discussion
+- Features that don't align with project goals
+- Code that doesn't pass tests or style checks
+- Code without proper documentation
+- Proprietary or non-AGPL compatible code
+
+### Commit Messages
+
+Use clear, descriptive commit messages:
+
+```bash
+# Good commit messages
+git commit -m "Add support for document type 110 (export invoice)"
+git commit -m "Fix CAF validation for expired certificates"
+git commit -m "Improve error handling in SII authentication"
+
+# Bad commit messages
+git commit -m "Fix bug"
+git commit -m "Update"
+git commit -m "WIP"
+```
+
+Format:
+```
+<type>: <short description>
+
+<optional longer description>
+
+<optional footer>
+```
+
+Types:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `test:` Test additions/changes
+- `refactor:` Code refactoring
+- `perf:` Performance improvements
+- `style:` Code style changes
+
+## Submitting Changes
+
+<Steps>
+  <Step title="Ensure Quality">
+    Before submitting, verify:
+    
+    ```bash
+    # Fix code style
+    composer phpcs-fix
+    
+    # Run static analysis
+    composer phpstan
+    
+    # Run tests
+    composer tests
+    ```
+    
+    All checks must pass.
+  </Step>
+
+  <Step title="Commit Your Changes">
+    ```bash
+    git add .
+    git commit -m "feat: add new feature"
+    ```
+  </Step>
+
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin feature/my-new-feature
+    ```
+  </Step>
+
+  <Step title="Create Pull Request">
+    1. Go to your fork on GitHub
+    2. Click "New Pull Request"
+    3. Select your feature branch
+    4. Fill in the PR template:
+       - **Description** - What does this PR do?
+       - **Motivation** - Why is this change needed?
+       - **Testing** - How was it tested?
+       - **Breaking Changes** - Any breaking changes?
+  </Step>
+</Steps>
+
+### Pull Request Checklist
+
+Before submitting, ensure:
+
+- [ ] Code follows style guidelines (phpcs passes)
+- [ ] Static analysis passes (phpstan passes)
+- [ ] All tests pass (composer tests)
+- [ ] New tests added for new functionality
+- [ ] Documentation updated if needed
+- [ ] Commit messages are clear and descriptive
+- [ ] PR description explains changes
+- [ ] No merge conflicts with master branch
+
+## Code Review Process
+
+### What to Expect
+
+1. **Initial Review** - Maintainers review within 1-2 weeks
+2. **Feedback** - You may receive change requests
+3. **Updates** - Make requested changes and push updates
+4. **Approval** - Once approved, PR will be merged
+
+### Review Criteria
+
+PRs are evaluated on:
+
+- **Code quality** - Clean, readable, maintainable
+- **Test coverage** - Adequate tests included
+- **Documentation** - Properly documented
+- **Compatibility** - No breaking changes without discussion
+- **License compliance** - Follows AGPL-3.0+
+
+## Reporting Issues
+
+### Before Reporting
+
+1. Search [existing issues](https://github.com/libredte/libredte-lib-core/issues)
+2. Check [Troubleshooting Guide](/resources/troubleshooting)
+3. Verify you're using the latest version
+
+### Creating an Issue
+
+Include:
+
+- **PHP version** (`php -v`)
+- **LibreDTE Core version**
+- **Error message** (complete stack trace)
+- **Steps to reproduce**
+- **Expected vs actual behavior**
+- **Minimal code example**
+
+Example:
+
+```markdown
+### Environment
+- PHP: 8.5.1
+- LibreDTE Core: 1.0.0
+- OS: Ubuntu 22.04
+
+### Issue
+CAF validation fails with "Invalid signature" error.
+
+### Steps to Reproduce
+1. Load CAF from file
+2. Call validator->validate($caf)
+3. Exception thrown
+
+### Expected
+CAF should validate successfully
+
+### Actual
+Exception: "Invalid CAF signature"
+
+### Code
+```php
+$cafLoader = $app->getPackageRegistry()->getBillingPackage()->getIdentifierComponent()->getCafLoaderWorker();
+$cafBag = $cafLoader->load($xml);
+$validator->validate($cafBag->getCaf()); // Fails here
+```
+```
+
+## Community Guidelines
+
+### Code of Conduct
+
+- Be respectful and professional
+- Welcome newcomers and help them learn
+- Focus on constructive feedback
+- Respect different viewpoints and experiences
+- Accept responsibility for mistakes
+
+### Communication Channels
+
+- **GitHub Issues** - Bug reports and feature requests
+- **Pull Requests** - Code contributions and discussions
+- **GitHub Discussions** - General questions and community support
+
+## Recognition
+
+Contributors are recognized:
+
+- Listed in project documentation
+- Mentioned in release notes
+- GitHub contributor stats
+- Community appreciation
+
+## Additional Resources
+
+- [LibreDTE Website](https://www.libredte.cl)
+- [Project Documentation](https://core.libredte.cl)
+- [GitHub Repository](https://github.com/libredte/libredte-lib-core)
+- [Terms and Conditions](https://core.libredte.cl/legal)
+- [AGPL-3.0 License](https://www.gnu.org/licenses/agpl-3.0.html)
+
+## Questions?
+
+If you have questions about contributing:
+
+1. Check this guide thoroughly
+2. Search existing issues and discussions
+3. Ask in GitHub Discussions
+4. Contact maintainers via GitHub
+
+Thank you for contributing to LibreDTE Core!

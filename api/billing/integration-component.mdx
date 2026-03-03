@@ -1,0 +1,145 @@
+---
+title: Integration Component
+description: Integrate with SII (Servicio de Impuestos Internos) web services
+---
+
+The Integration Component (`billing.integration`) manages all communication with the Chilean tax authority (SII), including authentication, document submission, and status verification.
+
+## Overview
+
+This component provides a unified interface for interacting with SII web services. It handles authentication, XML document submission, validation, and status tracking.
+
+## Workers
+
+The Integration Component contains the following workers:
+
+<CardGroup cols={1}>
+  <Card title="SII Lazy Worker" icon="server">
+    Lazy-loading worker for SII web service operations including authentication, document sending, validation, and status checking
+  </Card>
+</CardGroup>
+
+## Main Methods
+
+### getSiiLazyWorker
+
+Returns the SII Lazy Worker for performing operations with SII web services.
+
+<ResponseField name="return" type="SiiLazyWorkerInterface">
+  Returns the SII lazy worker instance that provides access to all SII operations
+</ResponseField>
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Integration\IntegrationComponent;
+
+// Get the SII worker
+$siiWorker = $integrationComponent->getSiiLazyWorker();
+
+// The worker provides access to various SII jobs:
+// - Authentication
+// - Send XML documents
+// - Validate documents
+// - Check document status
+// - Request status by email
+// - Validate document signatures
+```
+
+### getWorkers
+
+Returns all available workers in this component.
+
+<ResponseField name="return" type="array">
+  Returns an associative array with worker name as key:
+  - `sii_lazy`: SiiLazyWorkerInterface
+</ResponseField>
+
+## SII Operations
+
+The SII Lazy Worker supports the following operations (jobs):
+
+<AccordionGroup>
+  <Accordion title="Authentication" icon="key">
+    Authenticates with SII web services to obtain a session token required for other operations.
+    
+    Job: `AuthenticateJob`
+  </Accordion>
+  
+  <Accordion title="Send XML Document" icon="paper-plane">
+    Sends a signed XML document (DTE) to SII for processing and validation.
+    
+    Job: `SendXmlDocumentJob`
+  </Accordion>
+  
+  <Accordion title="Validate Document" icon="check-circle">
+    Validates a document against SII business rules without sending it.
+    
+    Job: `ValidateDocumentJob`
+  </Accordion>
+  
+  <Accordion title="Validate Document Signature" icon="signature">
+    Validates the digital signature of a document.
+    
+    Job: `ValidateDocumentSignatureJob`
+  </Accordion>
+  
+  <Accordion title="Check Document Status" icon="search">
+    Checks the current processing status of a previously sent document.
+    
+    Job: `CheckXmlDocumentSentStatusJob`
+  </Accordion>
+  
+  <Accordion title="Request Status by Email" icon="envelope">
+    Requests that SII send the document status to the registered email.
+    
+    Job: `RequestXmlDocumentSentStatusByEmailJob`
+  </Accordion>
+  
+  <Accordion title="Consume Web Service" icon="globe">
+    Generic method to consume any SII web service endpoint.
+    
+    Job: `ConsumeWebserviceJob`
+  </Accordion>
+</AccordionGroup>
+
+## Usage Example
+
+```php
+use libredte\lib\Core\Package\Billing\Component\Integration\IntegrationComponent;
+use libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente;
+
+// Get the integration component
+$integrationComponent = $billingPackage->getIntegrationComponent();
+$siiWorker = $integrationComponent->getSiiLazyWorker();
+
+// Authenticate with SII (required before other operations)
+// Authentication is typically handled automatically by the worker
+
+// Send a document to SII
+// The worker will handle authentication, submission, and return the response
+```
+
+## Environment Support
+
+The component supports both SII environments:
+
+- **Certification**: For testing and development (`SiiAmbiente::CERTIFICACION`)
+- **Production**: For real tax documents (`SiiAmbiente::PRODUCCION`)
+
+## Error Handling
+
+The component throws specific exceptions for different error scenarios:
+
+- `SiiAuthenticateException`: Authentication failures
+- `SiiSendXmlDocumentException`: Document submission errors
+- `SiiValidateDocumentException`: Document validation errors
+- `SiiValidateDocumentSignatureException`: Signature validation errors
+- `SiiCheckXmlDocumentSentStatusException`: Status check errors
+- `SiiRequestXmlDocumentSentStatusByEmailException`: Email request errors
+- `SiiConsumeWebserviceException`: Generic web service errors
+- `IntegrationException`: General integration errors
+
+## Source Reference
+
+Namespace: `libredte\lib\Core\Package\Billing\Component\Integration\IntegrationComponent`
+
+Location: `/workspace/source/src/Package/Billing/Component/Integration/IntegrationComponent.php:38`

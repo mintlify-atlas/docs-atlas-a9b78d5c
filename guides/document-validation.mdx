@@ -1,0 +1,475 @@
+---
+title: Document Validation
+description: Validate electronic documents against SII schemas, business rules, and digital signatures
+---
+
+LibreDTE Core provides comprehensive validation for Chilean electronic tax documents, ensuring compliance with SII requirements before submission.
+
+## Overview
+
+The `ValidatorWorker` offers three types of validation:
+
+1. **Business Rule Validation**: Validates document data against tax regulations
+2. **XML Schema Validation**: Validates document structure against SII XSD schemas
+3. **Signature Validation**: Verifies digital signatures and electronic stamps
+
+## Accessing the Validator
+
+```php
+$documentComponent = $app->getPackage('billing')
+    ->getComponent('document');
+
+$validatorWorker = $documentComponent->getValidatorWorker();
+```
+
+## Business Rule Validation
+
+Validates document data against Chilean tax regulations and business logic:
+
+<CodeGroup>
+```php Validate DocumentBag
+// During document creation, validation happens automatically
+$bag = $documentComponent->bill($data, $caf, $certificate);
+
+// Manual validation
+try {
+    $validatorWorker->validate($bag);
+    echo "Document data is valid!";
+} catch (\libredte\lib\Core\Package\Billing\Component\Document\Exception\ValidatorException $e) {
+    echo "Validation error: " . $e->getMessage();
+}
+```
+
+```php Validate XML String
+// Validate from XML
+$xmlString = file_get_contents('/path/to/document.xml');
+
+try {
+    $validatorWorker->validate($xmlString);
+    echo "Document is valid!";
+} catch (\Exception $e) {
+    echo "Validation failed: " . $e->getMessage();
+}
+```
+</CodeGroup>
+
+### What Gets Validated
+
+Business rule validation checks:
+
+<CardGroup cols={2}>
+  <Card title="Required Fields" icon="check">
+    - Document type (TipoDTE)
+    - Folio number
+    - Issuer and recipient data
+    - Issue date
+    - Item details
+  </Card>
+  
+  <Card title="Calculations" icon="calculator">
+    - Item totals
+    - Net amounts
+    - IVA (tax) calculations
+    - Discounts and surcharges
+    - Final document total
+  </Card>
+  
+  <Card title="Business Logic" icon="briefcase">
+    - Valid RUT format
+    - Valid comuna codes
+    - Valid activity codes
+    - Date format and logic
+    - Payment terms
+  </Card>
+  
+  <Card title="Document-Specific" icon="file-alt">
+    - Export document requirements
+    - Receipt (boleta) rules
+    - Credit/debit note references
+    - Dispatch guide requirements
+  </Card>
+</CardGroup>
+
+## XML Schema Validation
+
+Validates document structure against official SII XSD schemas:
+
+```php
+use Derafu\Xml\XmlDocument;
+
+// Validate from DocumentBag
+try {
+    $validatorWorker->validateSchema($bag);
+    echo "XML schema is valid!";
+} catch (\Exception $e) {
+    echo "Schema validation failed: " . $e->getMessage();
+}
+
+// Validate from XML string
+$xmlString = file_get_contents('/path/to/dte.xml');
+try {
+    $validatorWorker->validateSchema($xmlString);
+} catch (\Exception $e) {
+    echo "Invalid XML structure: " . $e->getMessage();
+}
+
+// Validate from XmlDocument
+$xmlDocument = new XmlDocument();
+$xmlDocument->loadXml($xmlString);
+
+try {
+    $validatorWorker->validateSchema($xmlDocument);
+} catch (\Exception $e) {
+    echo "Schema error: " . $e->getMessage();
+}
+```
+
+<Note>
+  Schema validation uses the official SII DTE XSD schema located at `resources/schemas/DTE_v10.xsd`. Receipts (boletas) are validated through their envelope (EnvioBOLETA) rather than individually.
+</Note>
+
+## Signature Validation
+
+Verifies XML digital signatures to ensure document integrity:
+
+<CodeGroup>
+```php Validate Signature
+// Validate signature from DocumentBag
+try {
+    $validatorWorker->validateSignature($bag);
+    echo "Signature is valid!";
+} catch (\Exception $e) {
+    echo "Invalid signature: " . $e->getMessage();
+}
+```
+
+```php Validate from XML
+// Validate signature from XML string
+$signedXml = file_get_contents('/path/to/signed-dte.xml');
+
+try {
+    $validatorWorker->validateSignature($signedXml);
+    echo "Document signature verified!";
+} catch (\Derafu\Signature\Exception\SignatureException $e) {
+    echo "Signature validation failed: " . $e->getMessage();
+}
+```
+</CodeGroup>
+
+### Signature Validation Checks
+
+The signature validator verifies:
+
+- XML-DSig signature structure is correct
+- Signature matches the signed content
+- Document hasn't been modified after signing
+- Certificate used for signing is valid
+- Signature algorithm is acceptable
+
+<Warning>
+  If a document's XML is modified after signing, signature validation will fail. Always validate signatures before processing documents from external sources.
+</Warning>
+
+## Complete Validation
+
+Perform all validation types on a document:
+
+```php
+function validateDocument($validatorWorker, $bag)
+{
+    $errors = [];
+    
+    // 1. Business rule validation
+    try {
+        $validatorWorker->validate($bag);
+        echo "✓ Business rules: OK\n";
+    } catch (\Exception $e) {
+        $errors[] = "Business rules: " . $e->getMessage();
+    }
+    
+    // 2. XML schema validation
+    try {
+        $validatorWorker->validateSchema($bag);
+        echo "✓ XML schema: OK\n";
+    } catch (\Exception $e) {
+        $errors[] = "XML schema: " . $e->getMessage();
+    }
+    
+    // 3. Signature validation
+    try {
+        $validatorWorker->validateSignature($bag);
+        echo "✓ Signature: OK\n";
+    } catch (\Exception $e) {
+        $errors[] = "Signature: " . $e->getMessage();
+    }
+    
+    if (empty($errors)) {
+        echo "\n✓ All validations passed!\n";
+        return true;
+    } else {
+        echo "\n✗ Validation errors:\n";
+        foreach ($errors as $error) {
+            echo "  - {$error}\n";
+        }
+        return false;
+    }
+}
+
+// Usage
+$isValid = validateDocument($validatorWorker, $bag);
+```
+
+## Validation During Document Creation
+
+Validation happens automatically during the `bill()` process:
+
+<Steps>
+  <Step title="Parse Input">
+    Input data is parsed into SII standard format.
+  </Step>
+
+  <Step title="Normalize">
+    Data is normalized (calculations, default values, etc.).
+  </Step>
+
+  <Step title="Sanitize">
+    Data is cleaned (trimming, formatting).
+  </Step>
+
+  <Step title="Validate">
+    Business rules are validated.
+    
+    ```php
+    // AbstractBuilderStrategy.php:89
+    $this->validatorWorker->validate($bag);
+    ```
+  </Step>
+
+  <Step title="Build">
+    Document is stamped and signed.
+  </Step>
+</Steps>
+
+## Disabling Validation
+
+For advanced use cases, you can skip validation during document creation:
+
+```php
+$bag = $documentComponent->bill(
+    data: $documentData,
+    caf: $caf,
+    certificate: $certificate,
+    options: [
+        'normalizer' => [
+            'normalize' => false,  // Skip normalization and validation
+        ],
+    ]
+);
+
+// Document is created without validation
+// Use with caution - may result in invalid documents!
+```
+
+<Warning>
+  Disabling validation can result in invalid documents that SII will reject. Only disable validation if you're certain your data is already validated and normalized.
+</Warning>
+
+## Custom Validation Rules
+
+For specific document types, different validation strategies are used:
+
+```php
+// The ValidatorWorker uses strategies for each document type
+// ValidatorWorker.php:87
+$strategy = $this->getStrategy($bag->getTipoDocumento()->getAlias());
+$strategy->validate($bag);
+```
+
+Available validation strategies:
+
+- `FacturaAfectaValidatorStrategy` - Taxable invoices (Type 33)
+- `FacturaExentaValidatorStrategy` - Tax-exempt invoices (Type 34)
+- `BoletaAfectaValidatorStrategy` - Taxable receipts (Type 39)
+- `BoletaExentaValidatorStrategy` - Tax-exempt receipts (Type 41)
+- `NotaCreditoValidatorStrategy` - Credit notes (Type 61)
+- `NotaDebitoValidatorStrategy` - Debit notes (Type 56)
+- `GuiaDespachoValidatorStrategy` - Dispatch guides (Type 52)
+- And more...
+
+## Validation in Batch Processing
+
+Validate multiple documents efficiently:
+
+```php
+$documents = [$data1, $data2, $data3];
+$validationResults = [];
+
+foreach ($documents as $index => $data) {
+    try {
+        $bag = new DocumentBag(inputData: $data);
+        $validatorWorker->validate($bag);
+        $validationResults[$index] = ['valid' => true];
+    } catch (\Exception $e) {
+        $validationResults[$index] = [
+            'valid' => false,
+            'error' => $e->getMessage(),
+        ];
+    }
+}
+
+// Process only valid documents
+foreach ($validationResults as $index => $result) {
+    if ($result['valid']) {
+        // Create and send document
+    } else {
+        echo "Document {$index} invalid: {$result['error']}\n";
+    }
+}
+```
+
+## Common Validation Errors
+
+<AccordionGroup>
+  <Accordion title="Missing required fields">
+    Ensure all required fields are present:
+    
+    ```php
+    // Example error: Missing RUTEmisor
+    $data = [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33, 'Folio' => 1],
+            'Emisor' => [
+                // 'RUTEmisor' => '12345678-5', // MISSING!
+                'RznSoc' => 'Company',
+            ],
+        ],
+    ];
+    
+    // Will throw ValidatorException
+    ```
+  </Accordion>
+
+  <Accordion title="Invalid RUT format">
+    RUT must be in format 'XXXXXXXX-X':
+    
+    ```php
+    // Invalid
+    'RUTEmisor' => '123456785'  // Missing dash
+    
+    // Valid
+    'RUTEmisor' => '12345678-5'
+    ```
+  </Accordion>
+
+  <Accordion title="Calculation errors">
+    Totals must match calculated values:
+    
+    ```php
+    // If you provide totals, they must be correct
+    'Totales' => [
+        'MntNeto' => 100000,
+        'IVA' => 19000,
+        'MntTotal' => 120000,  // Wrong! Should be 119000
+    ]
+    
+    // Better: Let LibreDTE calculate totals
+    // Just provide item details and omit Totales
+    ```
+  </Accordion>
+
+  <Accordion title="Invalid date format">
+    Dates must be in YYYY-MM-DD format:
+    
+    ```php
+    // Invalid
+    'FchEmis' => '15/01/2025'  // Wrong format
+    
+    // Valid
+    'FchEmis' => '2025-01-15'
+    ```
+  </Accordion>
+
+  <Accordion title="Missing document type">
+    TipoDTE is required:
+    
+    ```php
+    // The validator needs to know document type
+    if (!$bag->getTipoDocumento()) {
+        throw new ValidatorException(
+            'No es posible validar sin un TipoDocumento en la $bag.'
+        );
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Validation Best Practices
+
+<Steps>
+  <Step title="Validate Early">
+    Validate data before creating CAF and certificate resources:
+    
+    ```php
+    // Create bag without CAF/certificate first
+    $bag = new DocumentBag(inputData: $data);
+    
+    // Validate
+    $validatorWorker->validate($bag);
+    
+    // Only if valid, add expensive resources
+    $bag->setCaf($caf);
+    $bag->setCertificate($certificate);
+    ```
+  </Step>
+
+  <Step title="Validate Before Sending">
+    Always validate before sending to SII:
+    
+    ```php
+    $validatorWorker->validate($bag);
+    $validatorWorker->validateSchema($bag);
+    $validatorWorker->validateSignature($bag);
+    
+    // Only then send to SII
+    $trackId = $siiWorker->sendXmlDocument(...);
+    ```
+  </Step>
+
+  <Step title="Log Validation Errors">
+    Keep detailed logs of validation failures:
+    
+    ```php
+    try {
+        $validatorWorker->validate($bag);
+    } catch (ValidatorException $e) {
+        $logger->error('Document validation failed', [
+            'document' => $bag->getFolio(),
+            'type' => $bag->getDocumentTypeId(),
+            'error' => $e->getMessage(),
+            'data' => $bag->getParsedData(),
+        ]);
+        throw $e;
+    }
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Use the normalization and sanitization workers before validation. They automatically fix many common data issues like formatting and missing calculated fields.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Documents" icon="file-invoice" href="/guides/creating-documents">
+    Learn how to create electronic documents
+  </Card>
+  
+  <Card title="Digital Signatures" icon="signature" href="/guides/digital-signatures">
+    Sign and verify document signatures
+  </Card>
+  
+  <Card title="SII Integration" icon="cloud" href="/guides/sii-integration">
+    Send validated documents to SII
+  </Card>
+</CardGroup>

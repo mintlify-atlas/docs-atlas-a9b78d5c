@@ -1,0 +1,185 @@
+---
+title: Sanitizer Worker
+description: Sanitize and clean tax document data for security and compliance
+---
+
+The Sanitizer Worker cleans and sanitizes tax document data to prevent security issues and ensure data quality.
+
+## Overview
+
+The Sanitizer Worker processes document data to:
+
+- Remove potentially harmful content
+- Clean and trim whitespace
+- Escape special characters
+- Remove invalid or dangerous data
+- Ensure data safety and integrity
+
+## Methods
+
+### sanitize
+
+Sanitizes tax document data for security and quality.
+
+<ParamField path="bag" type="DocumentBagInterface" required>
+  Container with the document data to sanitize.
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Sanitized document data array.
+</ResponseField>
+
+**Throws:** `SanitizerException` if sanitization fails.
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$sanitizer = $documentComponent->getSanitizerWorker();
+
+// Sanitize the document data
+$sanitizedData = $sanitizer->sanitize($bag);
+```
+
+## Accessing the Sanitizer Worker
+
+Access the Sanitizer Worker through the Document Component:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+$sanitizer = $documentComponent->getSanitizerWorker();
+```
+
+## Usage Example
+
+Manual sanitization workflow:
+
+```php
+use libredte\lib\Core\Service\ServiceFactory;
+use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
+use libredte\lib\Core\Package\Billing\Component\Document\Exception\SanitizerException;
+
+$factory = new ServiceFactory();
+$documentComponent = $factory->make('billing.document');
+
+// Create a bag with potentially unsafe data
+$bag = new DocumentBag(
+    inputData: [
+        'Encabezado' => [
+            'IdDoc' => ['TipoDTE' => 33],
+            'Emisor' => [
+                'RUTEmisor' => '12345678-9',
+                'RznSoc' => '  Company Name  <script>alert(1)</script>  '
+            ]
+        ],
+        'Detalle' => [
+            [
+                'NmbItem' => 'Product <b>1</b>',
+                'PrcItem' => 1000
+            ]
+        ]
+    ],
+    options: []
+);
+
+// Sanitize the data
+try {
+    $sanitizer = $documentComponent->getSanitizerWorker();
+    $sanitizedData = $sanitizer->sanitize($bag);
+    
+    // $sanitizedData contains cleaned, safe data
+    print_r($sanitizedData);
+} catch (SanitizerException $e) {
+    echo "Sanitization failed: " . $e->getMessage();
+}
+```
+
+## Sanitization Operations
+
+The Sanitizer performs various cleaning operations:
+
+### String Cleaning
+
+- Trim leading/trailing whitespace
+- Remove excessive whitespace
+- Strip HTML/XML tags from text fields
+- Remove control characters
+- Clean special characters
+
+### Security
+
+- Prevent XSS attacks
+- Remove script tags
+- Escape dangerous characters
+- Validate character encodings
+- Remove null bytes
+
+### Data Quality
+
+- Normalize line endings
+- Remove invisible characters
+- Fix encoding issues
+- Clean corrupted data
+
+## Example Transformations
+
+Before sanitization:
+```php
+[
+    'Encabezado' => [
+        'Emisor' => [
+            'RznSoc' => '  Company <script>alert(1)</script> Name  ',
+            'GiroEmis' => "Retail\x00Store"
+        ]
+    ],
+    'Detalle' => [
+        [
+            'NmbItem' => 'Product   with   spaces',
+            'DscItem' => '<b>Bold</b> description'
+        ]
+    ]
+]
+```
+
+After sanitization:
+```php
+[
+    'Encabezado' => [
+        'Emisor' => [
+            'RznSoc' => 'Company Name',
+            'GiroEmis' => 'Retail Store'
+        ]
+    ],
+    'Detalle' => [
+        [
+            'NmbItem' => 'Product with spaces',
+            'DscItem' => 'Bold description'
+        ]
+    ]
+]
+```
+
+## Integration with Document Pipeline
+
+Sanitization typically occurs early in the document processing pipeline, often after parsing and before normalization:
+
+```php
+// Standard processing order:
+// 1. Parse input data
+// 2. Sanitize data (remove unsafe content)
+// 3. Normalize data (apply business rules)
+// 4. Build document
+```
+
+## Strategy Pattern
+
+The Sanitizer Worker implements `StrategiesAwareInterface`, allowing different sanitization strategies for:
+
+- Various field types (text, numbers, dates)
+- Different document types
+- Security levels
+- Industry-specific requirements
