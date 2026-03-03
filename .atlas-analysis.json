@@ -1,0 +1,151 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "LibreDTE Core",
+  "projectDescription": "PHP library for electronic invoicing and tax document management in Chile",
+  "theme": "sequoia",
+  "primaryColor": "#2563eb",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/packages-and-components",
+              "concepts/dependency-injection"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/creating-documents",
+              "guides/digital-signatures",
+              "guides/sii-integration",
+              "guides/document-validation",
+              "guides/pdf-generation",
+              "guides/sales-purchase-books"
+            ]
+          },
+          {
+            "group": "Document Types",
+            "pages": [
+              "documents/overview",
+              "documents/factura-afecta",
+              "documents/factura-exenta",
+              "documents/boleta",
+              "documents/nota-credito-debito",
+              "documents/factura-exportacion",
+              "documents/guia-despacho",
+              "documents/liquidacion-factura"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "api/application",
+              "api/package-registry"
+            ]
+          },
+          {
+            "group": "Billing Package",
+            "pages": [
+              "api/billing/overview",
+              "api/billing/document-component",
+              "api/billing/integration-component",
+              "api/billing/exchange-component",
+              "api/billing/identifier-component",
+              "api/billing/book-component",
+              "api/billing/trading-parties-component",
+              "api/billing/ownership-transfer-component"
+            ]
+          },
+          {
+            "group": "Document Workers",
+            "pages": [
+              "api/workers/builder",
+              "api/workers/validator",
+              "api/workers/renderer",
+              "api/workers/parser",
+              "api/workers/normalizer",
+              "api/workers/sanitizer",
+              "api/workers/dispatcher",
+              "api/workers/batch-processor"
+            ]
+          },
+          {
+            "group": "Enums & Entities",
+            "pages": [
+              "api/enums/codigo-documento",
+              "api/enums/categoria-documento",
+              "api/enums/operacion-documento",
+              "api/entities/overview"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "resources/migration-guide",
+              "resources/examples",
+              "resources/troubleshooting",
+              "resources/faq",
+              "resources/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Electronic document creation (12 document types)",
+    "Integration with Chilean SII (tax authority)",
+    "Digital signature and certificate management",
+    "Document validation and XML generation",
+    "PDF rendering with customizable templates",
+    "Sales and purchase book management",
+    "Trading parties and ownership transfer support"
+  ],
+  "publicApiSurface": [
+    "Application::getInstance()",
+    "PackageRegistry::getBillingPackage()",
+    "BillingPackage::getDocumentComponent()",
+    "BillingPackage::getIntegrationComponent()",
+    "BillingPackage::getExchangeComponent()",
+    "BillingPackage::getIdentifierComponent()",
+    "BillingPackage::getBookComponent()",
+    "BillingPackage::getTradingPartiesComponent()",
+    "BillingPackage::getOwnershipTransferComponent()",
+    "DocumentComponent::bill()",
+    "DocumentComponent::getBuilderWorker()",
+    "DocumentComponent::getValidatorWorker()",
+    "DocumentComponent::getRendererWorker()",
+    "DocumentComponent::getParserWorker()",
+    "DocumentComponent::getNormalizerWorker()",
+    "DocumentComponent::getSanitizerWorker()",
+    "DocumentComponent::getDispatcherWorker()",
+    "DocumentComponent::getBatchProcessorWorker()",
+    "IntegrationComponent::getSiiLazyWorker()",
+    "CodigoDocumento enum (12 document types)"
+  ]
+}
